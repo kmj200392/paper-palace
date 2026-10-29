@@ -192,3 +192,150 @@ test("OAuth login uses PKCE and secure HTTP-only cookie, never client secret in 
   assert.equal(url.searchParams.has("client_secret"), false);
   assert.match(r.headers.get("Set-Cookie")!, /HttpOnly; Secure; SameSite=Lax/);
 });
+
+test("OpenAI adapter validates evidence and does not return keys to the browser", async () => {
+  const originalFetch = globalThis.fetch;
+  const fakeKey = "sk-test-not-a-real-credential";
+  const point = {
+    text: "Test result",
+    citations: [
+      { blockId: "b1", quote: "Attention connects distant tokens" },
+      { blockId: "b1", quote: "Invented claim that does not occur" },
+    ],
+  };
+  const analysis = {
+    positioning: "Fixture for adapter testing",
+    tags: ["test"],
+    limitations: [],
+    sections: {
+      motivation: [point],
+      coreConcept: [],
+      method: [],
+      experimentalSetup: [],
+      results: [],
+    },
+  };
+  let called = false;
+  globalThis.fetch = async (input, init) => {
+    called = true;
+    assert.equal(String(input), "https://api.openai.com/v1/responses");
+    assert.equal(
+      (init?.headers as Record<string, string>).Authorization,
+      `Bearer ${fakeKey}`,
+    );
+    const sent = JSON.parse(init!.body as string);
+    assert.equal(sent.store, false);
+    assert.equal(sent.text.format.strict, true);
+    return new Response(
+      JSON.stringify({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: JSON.stringify(analysis) }],
+          },
+        ],
+        usage: { input_tokens: 30, output_tokens: 20 },
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  };
+  try {
+    const r = await worker.fetch(
+      new Request(env.APP_ORIGIN + "/api/analyze", {
+        method: "POST",
+        headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openai",
+          model: "gpt-5-mini",
+          apiKey: fakeKey,
+          title: "Test paper",
+          blocks: [
+            {
+              id: "b1",
+              kind: "paragraph",
+              text: "Attention connects distant tokens without recurrence.",
+            },
+          ],
+        }),
+      }),
+      env,
+    );
+    assert.equal(r.status, 200);
+    assert(called);
+    const text = await r.text();
+    assert(!text.includes(fakeKey));
+    const data = JSON.parse(text);
+    assert.equal(data.analysis.sections.motivation[0].citations.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("AI graph proposals cannot reference unknown papers or self edges", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  relations: [
+                    {
+                      source: "a",
+                      target: "b",
+                      label: "related to",
+                      note: "Possible shared idea",
+                    },
+                    {
+                      source: "a",
+                      target: "invented",
+                      label: "related to",
+                      note: "invalid",
+                    },
+                    {
+                      source: "a",
+                      target: "a",
+                      label: "related to",
+                      note: "invalid",
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  try {
+    const r = await worker.fetch(
+      new Request(env.APP_ORIGIN + "/api/relate", {
+        method: "POST",
+        headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openai",
+          model: "gpt-5-mini",
+          apiKey: "sk-fake-test-credential",
+          papers: ["a", "b"].map((id) => ({
+            id,
+            title: "Test",
+            positioning: "Test summary",
+            tags: [],
+            method: "A method",
+          })),
+        }),
+      }),
+      env,
+    );
+    assert.equal(r.status, 200);
+    const data = (await r.json()) as { relations: unknown[] };
+    assert.equal(data.relations.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

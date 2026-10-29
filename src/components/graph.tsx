@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Maximize2, ArrowUpRight, Network } from "lucide-react";
 import type { Paper, Edge } from "@/lib/model";
 type Point = { x: number; y: number };
@@ -15,6 +15,7 @@ export function Graph({
   const [scale, setScale] = useState(1),
     [positions, setPositions] = useState<Record<string, Point>>({}),
     [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const canvas = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     id: string;
     x: number;
@@ -45,6 +46,38 @@ export function Graph({
       ),
     [papers, positions],
   );
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const fitView = useCallback(() => {
+    const element = canvas.current;
+    const points = Object.values(layoutRef.current);
+    if (!element || !points.length) return;
+    const left = Math.min(...points.map((p) => p.x));
+    const right = Math.max(...points.map((p) => p.x));
+    const top = Math.min(...points.map((p) => p.y));
+    const bottom = Math.max(...points.map((p) => p.y));
+    const nextScale = Math.max(
+      0.15,
+      Math.min(
+        1,
+        (element.clientWidth - 40) / (right - left + 220),
+        (element.clientHeight - 100) / (bottom - top + 150),
+      ),
+    );
+    setScale(nextScale);
+    setPan({
+      x: (440 - (left + right) / 2) * nextScale,
+      y: (310 - (top + bottom) / 2) * nextScale - 20,
+    });
+  }, []);
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const observer = new ResizeObserver(fitView);
+    observer.observe(element);
+    fitView();
+    return () => observer.disconnect();
+  }, [papers.length, fitView]);
   if (!papers.length)
     return (
       <div className="empty-state graph-empty">
@@ -58,6 +91,7 @@ export function Graph({
     );
   return (
     <div
+      ref={canvas}
       className="graph-canvas"
       onPointerMove={(e) => {
         const d = drag.current;
@@ -155,7 +189,7 @@ export function Graph({
         <button
           className="icon-button"
           aria-label="축소"
-          onClick={() => setScale((s) => Math.max(0.4, s - 0.15))}
+          onClick={() => setScale((s) => Math.max(0.15, s - 0.15))}
         >
           <Minus size={17} />
         </button>
@@ -169,12 +203,8 @@ export function Graph({
         </button>
         <button
           className="icon-button"
-          aria-label="지도 위치 초기화"
-          onClick={() => {
-            setScale(1);
-            setPan({ x: 0, y: 0 });
-            setPositions({});
-          }}
+          aria-label="전체 지도 보기"
+          onClick={fitView}
         >
           <Maximize2 size={16} />
         </button>

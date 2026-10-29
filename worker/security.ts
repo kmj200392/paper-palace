@@ -1,5 +1,10 @@
-export const bytesToBase64 = (b: Uint8Array) =>
-  btoa(Array.from(b, (x) => String.fromCharCode(x)).join(""));
+export const bytesToBase64 = (b: Uint8Array) => {
+  const chunks: string[] = [];
+  for (let offset = 0; offset < b.length; offset += 32768) {
+    chunks.push(String.fromCharCode(...b.subarray(offset, offset + 32768)));
+  }
+  return btoa(chunks.join(""));
+};
 export const base64ToBytes = (s: string) =>
   Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const url64 = (s: string) =>

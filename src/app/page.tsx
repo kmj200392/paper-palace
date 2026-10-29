@@ -166,7 +166,7 @@ export default function Home() {
               <br />
               논문 간의 관계를 직접 연결하고 메모하세요.
               <br />
-              태그로 찾은 연결 후보는 검토한 뒤 지도에 더할 수 있어요.
+              AI와 태그로 발견한 연결 후보를 검토하고 지도에 더하세요.
             </p>
             <Link href="/app/" className="text-link">
               지식 지도 만들기 <ArrowRight size={17} />

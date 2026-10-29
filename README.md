@@ -9,7 +9,7 @@ Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries,
 - arXiv metadata and version-aware HTML/PDF reading; original PDF alongside extracted text.
 - Motivation, core concept, method, experimental setup and results, generated with your OpenAI or Anthropic API key.
 - Verified short source quotations link back to the original text. Unsupported citations are removed; generated claims still require human review.
-- Local IndexedDB storage, tags, reading status, notes, JSON import/export, draggable graph and directed relationships.
+- Local IndexedDB storage, tags, reading status, notes, JSON import/export, draggable graph and directed relationships. AI can propose connections between analyzed papers; proposals stay dashed until you review and adopt them.
 - GitHub App OAuth (PKCE/state, encrypted HttpOnly sessions) and user-selected private repository synchronization. No central user database.
 - A portable [Paper Palace agent skill](skills/paper-palace/SKILL.md).
 
@@ -46,7 +46,7 @@ API keys live only in the current browser tab's memory. Requests pass through th
 
 Private repositories store `paper-palace/library.json`. Full paper sources stay in the browser cache. Sync merges items by modification timestamp and honors deletion tombstones. Git history retains prior revisions. Export/import validates the schema before merging. Local data is separated by GitHub account; importing pre-login local data is explicit.
 
-Current limits: 3MB library sync, 1000 papers per library, 120 PDF pages, 220000 extracted text characters per AI analysis, 25MB PDFs when upstream supplies length. Figure pixels are not analyzed; complex tables and math may lose layout during extraction. PDF-only citations link to extracted blocks and expose page numbers. Scanned PDFs need OCR and are not supported. Users choose a model supporting structured outputs and pay their provider directly.
+Current limits: 3MB library sync, 1000 papers per library, 120 PDF pages, 220000 extracted text characters per AI analysis, up to 40 paper summaries per AI relationship request, 25MB PDFs when upstream supplies length. Figure pixels are not analyzed; complex tables and math may lose layout during extraction. PDF-only citations link to extracted blocks and expose page numbers. Scanned PDFs need OCR and are not supported. Users choose a model supporting structured outputs and pay their provider directly.
 
 ## Verification
 

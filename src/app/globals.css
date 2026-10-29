@@ -316,6 +316,9 @@ a:hover {
 .hero-copy > .eyebrow {
   margin-bottom: 24px;
 }
+.hero-copy {
+  min-width: 0;
+}
 .hero h1 {
   font-family: var(--serif);
   font-weight: 400;
@@ -1742,6 +1745,7 @@ summary::-webkit-details-marker {
 .source-panel,
 .analysis-panel {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -2184,7 +2188,7 @@ summary::-webkit-details-marker {
 .graph-world {
   position: absolute;
   left: calc(50% - 440px);
-  top: 0;
+  top: calc(50% - 310px);
   width: 880px;
   height: 620px;
   transform-origin: center center;
@@ -2910,13 +2914,13 @@ summary::-webkit-details-marker {
     width: 88%;
   }
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding: 45px 0 60px;
     gap: 45px;
     min-height: 0;
   }
   .hero h1 {
-    font-size: 83px;
+    font-size: clamp(60px, 19vw, 83px);
     letter-spacing: -3px;
   }
   .hero h2 {
@@ -3480,9 +3484,6 @@ summary::-webkit-details-marker {
   .graph-canvas {
     height: 480px;
   }
-  .graph-world {
-    transform-origin: center 240px;
-  }
   .graph-controls {
     right: 10px;
     bottom: 10px;
@@ -3550,4 +3551,68 @@ summary::-webkit-details-marker {
 }
 .sidebar .brand-mark {
   height: 35px;
+}
+
+.graph-actionbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.accept-edge {
+  order: 2;
+}
+.proposal-label {
+  display: block;
+  color: #a18b57 !important;
+}
+@media (max-width: 600px) {
+  .library-tools:has(.graph-actionbar) {
+    flex-wrap: wrap;
+  }
+  .graph-actionbar {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .graph-actionbar .button {
+    font-size: 10px;
+    padding: 7px 9px;
+  }
+  .edge-row {
+    flex-wrap: wrap;
+  }
+  .edge-row > div {
+    flex: 1;
+    min-width: 180px;
+  }
+}
+/* Keep supporting text readable on the warm paper surfaces. */
+.hero-description,
+.hero-footnote,
+.card-authors,
+.card-description,
+.library-heading p:last-child,
+.local-notice small,
+.welcome-empty > p:not(.eyebrow),
+.settings-section > p,
+.dialog-description,
+.legal p {
+  color: #6e7865;
+}
+.form-hint {
+  color: #718066 !important;
+}
+.citation {
+  color: #5d7449;
+}
+.source-badge {
+  color: #617c43;
+}
+.analysis-footer p,
+.notes-panel > .muted {
+  color: #768b63;
+}
+.graph-node small,
+.graph-legend,
+.graph-controls {
+  color: #6c8754;
 }

@@ -10,8 +10,8 @@
   },
   "vars": {
     "APP_ORIGIN": "https://paperpalace.minjaek.im",
-    "GITHUB_CLIENT_ID": "",
-    "GITHUB_APP_SLUG": "",
+    "GITHUB_CLIENT_ID": "Iv23liAsDhVrTwfIfZOb",
+    "GITHUB_APP_SLUG": "paper-palace-by-minjae",
   },
   "observability": {
     "enabled": false,

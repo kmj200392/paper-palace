@@ -16,6 +16,7 @@ import {
   Network,
   Plus,
   Search,
+  Sparkles,
   Settings,
   RefreshCw,
   Trash2,
@@ -46,6 +47,7 @@ import { api } from "@/lib/api";
 import { importPaper } from "@/lib/source";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
+  const [suggesting, setSuggesting] = useState(false);
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
     [account, setAccount] = useState("guest"),
@@ -274,6 +276,72 @@ export default function Workspace() {
     mutate((l) => ({ ...l, edges: [...l.edges, edge] }));
     setEdgeOpen(false);
     notify("두 논문을 연결했어요.");
+  };
+  const suggestAI = async () => {
+    if (!ai.apiKey) {
+      setSettingsOpen(true);
+      return;
+    }
+    if (suggesting) return;
+    const papers = library.papers
+      .filter((p) => p.analysis)
+      .slice(0, 40)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        positioning: p.analysis!.positioning,
+        tags: p.tags,
+        method: p
+          .analysis!.sections.method.map((s) => s.text)
+          .join(" ")
+          .slice(0, 2500),
+      }));
+    if (papers.length < 2) {
+      notify("먼저 논문 두 편 이상을 AI로 정리해 주세요.");
+      return;
+    }
+    setSuggesting(true);
+    try {
+      const data = await api<{
+        relations: {
+          source: string;
+          target: string;
+          label: string;
+          note: string;
+        }[];
+      }>("/relate", {
+        method: "POST",
+        body: JSON.stringify({ ...ai, papers }),
+      });
+      mutate((l) => {
+        const edges = [...l.edges];
+        for (const r of data.relations) {
+          if (
+            !edges.some(
+              (e) =>
+                (e.source === r.source && e.target === r.target) ||
+                (e.target === r.source && e.source === r.target),
+            )
+          )
+            edges.push({
+              ...r,
+              id: crypto.randomUUID(),
+              origin: "suggested",
+              updatedAt: new Date().toISOString(),
+            });
+        }
+        return { ...l, edges };
+      });
+      notify(
+        data.relations.length
+          ? "AI 연결 후보를 점선으로 표시했어요. 근거를 확인하고 채택해 주세요."
+          : "요약만으로 뚜렷한 연결을 찾지 못했어요.",
+      );
+    } catch (e) {
+      notify((e as Error).message);
+    } finally {
+      setSuggesting(false);
+    }
   };
   const suggestions = useMemo(() => {
     const pairs: { a: Paper; b: Paper; tags: string[] }[] = [];
@@ -510,21 +578,39 @@ export default function Workspace() {
                     </select>
                   </label>
                 ) : (
-                  <button
-                    className="button small"
-                    disabled={library.papers.length < 2}
-                    onClick={() => {
-                      setEdgeDraft({
-                        source: library.papers[0]?.id || "",
-                        target: library.papers[1]?.id || "",
-                        label: "builds on",
-                        note: "",
-                      });
-                      setEdgeOpen(true);
-                    }}
-                  >
-                    <Link2 size={15} /> 연결 만들기
-                  </button>
+                  <div className="graph-actionbar">
+                    <button
+                      className="button small"
+                      disabled={
+                        suggesting ||
+                        library.papers.filter((p) => p.analysis).length < 2
+                      }
+                      onClick={suggestAI}
+                      title="최대 40편의 논문 제목과 AI 요약을 선택한 제공자에 전송합니다. API 사용료가 발생합니다."
+                    >
+                      {suggesting ? (
+                        <LoaderCircle size={14} className="spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}{" "}
+                      {suggesting ? "연결을 찾는 중…" : "AI 연결 제안"}
+                    </button>
+                    <button
+                      className="button small"
+                      disabled={library.papers.length < 2}
+                      onClick={() => {
+                        setEdgeDraft({
+                          source: library.papers[0]?.id || "",
+                          target: library.papers[1]?.id || "",
+                          label: "builds on",
+                          note: "",
+                        });
+                        setEdgeOpen(true);
+                      }}
+                    >
+                      <Link2 size={15} /> 연결 만들기
+                    </button>
+                  </div>
                 )}
               </div>
               {view === "library" ? (
@@ -661,6 +747,27 @@ export default function Workspace() {
                       ) : (
                         library.edges.map((e) => (
                           <div className="edge-row" key={e.id}>
+                            {e.origin === "suggested" && (
+                              <button
+                                className="button small accept-edge"
+                                onClick={() =>
+                                  mutate((l) => ({
+                                    ...l,
+                                    edges: l.edges.map((x) =>
+                                      x.id === e.id
+                                        ? {
+                                            ...x,
+                                            origin: "manual",
+                                            updatedAt: new Date().toISOString(),
+                                          }
+                                        : x,
+                                    ),
+                                  }))
+                                }
+                              >
+                                채택
+                              </button>
+                            )}
                             <div>
                               <p>
                                 <button onClick={() => setSelected(e.source)}>
@@ -679,6 +786,11 @@ export default function Workspace() {
                                   }
                                 </button>
                               </p>
+                              {e.origin === "suggested" && (
+                                <small className="proposal-label">
+                                  AI 제안 · 요약 기반, 관계 근거 미검증
+                                </small>
+                              )}
                               {e.note && <small>{e.note}</small>}
                             </div>
                             <button
@@ -1017,6 +1129,7 @@ export default function Workspace() {
               ref={fileInput}
               className="sr-only"
               type="file"
+              aria-label="라이브러리 JSON 파일 가져오기"
               accept=".json,application/json"
               onChange={(e) => {
                 if (e.target.files?.[0]) void importJSON(e.target.files[0]);

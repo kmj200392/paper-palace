@@ -91,18 +91,19 @@ export async function getSource(
       ];
       blocks = elements
         .filter((e) => !e.closest("table") || e.tagName === "TABLE")
-        .map((e, i) => ({
-          id: `b${i + 1}`,
-          kind: (/^H\d$/.test(e.tagName)
-            ? "heading"
-            : e.tagName === "TABLE"
-              ? "table"
-              : "paragraph") as Block["kind"],
-          text: (e.textContent || "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 30000),
-        }))
+        .flatMap((e, i) => {
+          const text = (e.textContent || "").replace(/\s+/g, " ").trim();
+          const chunks = text.match(/[\s\S]{1,30000}/g) || [];
+          return chunks.map((text, j) => ({
+            id: chunks.length === 1 ? `b${i + 1}` : `b${i + 1}-${j}`,
+            kind: (/^H\d$/.test(e.tagName)
+              ? "heading"
+              : e.tagName === "TABLE"
+                ? "table"
+                : "paragraph") as Block["kind"],
+            text,
+          }));
+        })
         .filter((b) => b.text.length > 1);
     }
   }
