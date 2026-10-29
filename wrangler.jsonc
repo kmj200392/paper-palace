@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "paper-palace",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-29",
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+  },
+  "vars": {
+    "APP_ORIGIN": "https://paperpalace.minjaek.im",
+    "GITHUB_CLIENT_ID": "",
+    "GITHUB_APP_SLUG": "",
+  },
+  "observability": {
+    "enabled": false,
+  },
+  "account_id": "b0ad5c2078e8911b2c39e9e1eacbbece",
+  "routes": [
+    {
+      "pattern": "paperpalace.minjaek.im",
+      "custom_domain": true,
+    },
+  ],
+  "workers_dev": true,
+}

@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.wrangler/
+.dev.vars*
+.env*
+!.env.example
+*.tsbuildinfo
+.planning/
+test-results/
+.DS_Store
+
+public/pdf.worker.min.mjs
