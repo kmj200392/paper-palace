@@ -53,7 +53,7 @@ export default function Home() {
               나의 연구 공간 열기 <ArrowUpRight size={18} />
             </Link>
             <p className="hero-footnote">
-              무료 오픈소스 · 나의 GitHub에 저장 · 나의 AI로 읽기
+              무료 오픈소스 · 나의 폴더와 GitHub에 저장 · 나의 AI로 읽기
             </p>
           </div>
           <PalaceMap />
@@ -186,10 +186,11 @@ export default function Home() {
             <div className="ownership-columns">
               <article>
                 <GitBranch size={24} />
-                <h3>Your papers. Your GitHub.</h3>
+                <h3>Your papers. Your space.</h3>
                 <p>
-                  논문 목록, 요약, 메모와 연결을 나의 비공개 GitHub 저장소에
-                  보관하세요. JSON으로 내보내 언제든 가져갈 수도 있어요.
+                  논문 목록, 요약, 메모와 연결을 나의 로컬 폴더나 비공개 GitHub
+                  저장소에 보관하세요. 둘을 함께 연결하고, 다른 기기에서도
+                  이어갈 수 있어요.
                 </p>
               </article>
               <article>
@@ -232,7 +233,7 @@ export default function Home() {
               ],
               [
                 "로그인하지 않고도 쓸 수 있나요?",
-                "이 브라우저에 저장하며 먼저 사용해 볼 수 있어요. 다른 기기에서도 이어서 쓰려면 GitHub 로그인 후 비공개 저장소를 연결하고 동기화하세요. 브라우저 데이터를 지우면 로컬 자료도 사라지므로 동기화 또는 내보내기를 권장합니다.",
+                "로그인 없이 브라우저에 저장하거나 지원되는 브라우저에서 로컬 폴더를 연결할 수 있어요. 나중에 GitHub을 연결해 현재 자료를 동기화할 수도 있고, GitHub을 먼저 쓰다가 폴더를 추가할 수도 있어요. 폴더 연결을 지원하지 않는 브라우저에서는 JSON 내보내기도 사용할 수 있어요.",
               ],
             ].map(([q, a]) => (
               <details key={q}>

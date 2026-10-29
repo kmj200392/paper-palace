@@ -3616,3 +3616,114 @@ summary::-webkit-details-marker {
 .graph-controls {
   color: #6c8754;
 }
+
+/* Storage connections share one research library. */
+.folder-connection {
+  padding: 16px;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f1f3eb;
+  overflow-wrap: anywhere;
+}
+.folder-connection strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.folder-connection code {
+  display: block;
+  margin: 9px 0;
+  font-size: 11px;
+}
+.folder-connection p {
+  font-size: 11px;
+  color: var(--sage-dark, #536745);
+  margin: 0;
+}
+.storage-overview > span {
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.storage-overview small {
+  flex-basis: 100%;
+  margin-left: 12px;
+}
+.storage-overview > button {
+  flex-shrink: 0;
+}
+.status-dot.needs-attention {
+  background: #a96c32;
+}
+.merge-conflict {
+  padding: 14px;
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  min-width: 0;
+  border-radius: 8px;
+}
+.merge-conflict legend {
+  font-size: 14px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.merge-conflict label {
+  display: block;
+  padding: 12px;
+  background: #f4f5ee;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+.merge-conflict label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dialog .merge-conflict input {
+  width: auto;
+  margin: 0;
+  accent-color: #536745;
+}
+.merge-conflict details {
+  margin-top: 8px;
+}
+.merge-conflict summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.merge-conflict pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 230px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 10px 0;
+}
+@media (max-width: 600px) {
+  .storage-overview {
+    align-items: flex-start;
+  }
+  .storage-overview > span {
+    gap: 6px;
+  }
+  .storage-overview small {
+    display: block;
+  }
+}
+.conflict-content {
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.conflict-content > p {
+  margin: 9px 0;
+}
+.conflict-content details {
+  max-height: 300px;
+  overflow: auto;
+}
+.dialog input.sr-only { width: 1px; }
