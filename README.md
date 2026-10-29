@@ -2,6 +2,8 @@
 
 **Read. Connect. Remember.** A personal research graph for the papers you read.
 
+[Open Paper Palace](https://paperpalace.minjaek.im) · [Research workspace](https://paperpalace.minjaek.im/app/)
+
 Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries, private research notes, and a knowledge graph. The interface is in Korean. Made with Next.js, deployed as static assets plus a small Cloudflare Worker.
 
 ## Features
@@ -49,6 +51,8 @@ Private repositories store `paper-palace/library.json`. Full paper sources stay 
 Current limits: 3MB library sync, 1000 papers per library, 120 PDF pages, 220000 extracted text characters per AI analysis, up to 40 paper summaries per AI relationship request, 25MB PDFs when upstream supplies length. Figure pixels are not analyzed; complex tables and math may lose layout during extraction. PDF-only citations link to extracted blocks and expose page numbers. Scanned PDFs need OCR and are not supported. Users choose a model supporting structured outputs and pay their provider directly.
 
 ## Verification
+
+The deployed site has been checked with real GitHub sign-in, a selected private repository, library write/read synchronization, arXiv HTML and PDF viewing, and mobile layouts. AI request formatting and citation validation are tested with mocked provider responses; a real paid model request is not part of the automated suite.
 
 ```sh
 npm run typecheck
