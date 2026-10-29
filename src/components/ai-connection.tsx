@@ -25,14 +25,21 @@ import {
   type AISettings,
 } from "@/lib/ai-vault";
 import { deleteLocal, readLocal, writeLocal } from "@/lib/storage";
+import { accountAISettings } from "@/lib/ai-settings";
+import { AccountAIPanel } from "./account-ai-panel";
+import type { AccountAIConnection } from "./use-account-ai";
 
 // Mounted only while settings are open: closing discards all password form state.
 export function AIConnection({
   ai,
   setAi,
+  user,
+  account,
 }: {
   ai: AISettings;
   setAi: Dispatch<SetStateAction<AISettings>>;
+  user: { id: number; login: string } | null;
+  account: AccountAIConnection;
 }) {
   const [vaults, setVaults] = useState<Record<AIProvider, unknown>>({
     openai: undefined,
@@ -50,6 +57,7 @@ export function AIConnection({
   const running = useRef(false);
   const available = supportsVault();
   const saved = vaults[ai.provider] !== undefined;
+  const accountKey = account.keys[ai.provider];
 
   useEffect(() => {
     alive.current = true;
@@ -64,7 +72,9 @@ export function AIConnection({
         setVaults({ openai, anthropic });
         if (preference === "openai" || preference === "anthropic")
           setAi((current) =>
-            current.apiKey || current.provider === preference
+            current.apiKey ||
+            current.accountId ||
+            current.provider === preference
               ? current
               : defaultAISettings(preference),
           );
@@ -153,9 +163,7 @@ export function AIConnection({
       setAi((current) => ({ ...current, apiKey: "" }));
       setDeleting(false);
       setSaving(false);
-      setMessage(
-        "이 브라우저의 저장된 키를 삭제하고, 이 탭의 연결을 해제했어요.",
-      );
+      setMessage("이 브라우저의 비밀번호 보관함에서 키를 삭제했어요.");
     });
 
   return (
@@ -172,11 +180,16 @@ export function AIConnection({
           AI 제공자
           <select
             value={ai.provider}
-            disabled={busy || (!loaded && !error)}
+            disabled={busy || account.loading || (!loaded && !error)}
             onChange={(e) => {
               const provider = e.target.value as AIProvider;
               clearForm();
-              setAi(defaultAISettings(provider));
+              const key = account.keys[provider];
+              setAi(
+                user && key
+                  ? accountAISettings(key, user.id)
+                  : defaultAISettings(provider),
+              );
               void writeLocal(providerPreferenceKey, provider).catch(() => {
                 if (alive.current)
                   setError(
@@ -216,14 +229,20 @@ export function AIConnection({
           maxLength={500}
           onChange={(e) => {
             clearForm();
-            setAi((current) => ({ ...current, apiKey: e.target.value.trim() }));
+            setAi((current) => ({
+              ...current,
+              apiKey: e.target.value.trim(),
+              accountId: undefined,
+            }));
           }}
           placeholder={
-            saved && !ai.apiKey
-              ? "저장된 키 · 잠금 해제 필요"
-              : ai.provider === "openai"
-                ? "sk-…"
-                : "sk-ant-…"
+            ai.accountId
+              ? "연결됨 · 교체할 새 키 입력"
+              : saved && !ai.apiKey
+                ? "저장된 키 · 잠금 해제 필요"
+                : ai.provider === "openai"
+                  ? "sk-…"
+                  : "sk-ant-…"
           }
         />
         {ai.apiKey && (
@@ -240,197 +259,240 @@ export function AIConnection({
         )}
       </div>
 
-      <div className="ai-vault" aria-busy={busy}>
-        <div className="vault-heading">
-          {saved ? <ShieldCheck size={17} /> : <LockKeyhole size={17} />}
-          <strong>
-            {saved ? "암호화된 키 보관 중" : "이 브라우저에 키 보관하기"}
-          </strong>
-          {saved && <span>{ai.apiKey ? "AI 사용 가능" : "잠겨 있음"}</span>}
-        </div>
-        <p className="vault-copy">
-          {saved
-            ? "저장된 키와 모델은 이 브라우저에서만 불러올 수 있어요. 현재 입력을 바꾸면 다시 저장해 주세요."
-            : "비밀번호로 암호화하면 새로고침해도 키가 남아요. 저장하지 않으면 이 탭에서만 사용해요."}
-        </p>
-        {!available && (
-          <p className="vault-error" role="status">
-            이 환경에서는 암호화 저장을 사용할 수 없어요. HTTPS와 Web Crypto를
-            지원하는 브라우저가 필요해요.
-          </p>
-        )}
-        {!loaded && !error && (
-          <p className="vault-copy" role="status">
-            저장된 키 확인 중…
-          </p>
-        )}
-
-        {saved && !ai.apiKey && !deleting && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void unlock();
-            }}
-          >
-            <label htmlFor="vault-password">잠금 비밀번호</label>
-            <input
-              id="vault-password"
-              type="password"
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy || !available}
-              minLength={12}
-              maxLength={256}
-              required
-              placeholder="저장할 때 정한 비밀번호"
-            />
-            <button
-              className="button primary small"
-              disabled={busy || !available}
-            >
-              {busy ? (
-                <LoaderCircle className="spin" size={15} />
-              ) : (
-                <KeyRound size={15} />
-              )}{" "}
-              잠금 해제
-            </button>
-          </form>
-        )}
-
-        {ai.apiKey && !saving && !deleting && (
-          <button
-            className="button small"
-            disabled={busy || !loaded || !available}
-            onClick={() => {
+      {user && (
+        <AccountAIPanel
+          key={ai.provider}
+          user={user}
+          ai={ai}
+          account={account}
+          busy={busy}
+          save={() =>
+            void act(async () => {
+              await account.save(ai);
+              if (!alive.current) return;
               clearForm();
-              setSaving(true);
-            }}
-          >
-            <LockKeyhole size={15} />
-            {saved ? "현재 키로 다시 저장" : "암호화 저장 설정"}
-          </button>
-        )}
-
-        {ai.apiKey && saving && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save();
-            }}
-          >
-            <p className="vault-copy">
-              나만 아는 비밀번호를 정해 주세요. 비밀번호는 저장하지 않으며,
-              잊으면 API 키를 다시 등록해야 해요.
-              {saved && " 저장하면 기존 키와 비밀번호를 교체해요."}
+              setMessage(
+                "계정에 연결했어요. 이제 로그인 중에는 새로고침해도 AI를 바로 쓸 수 있어요.",
+              );
+            })
+          }
+          remove={() =>
+            act(async () => {
+              await account.remove(ai.provider);
+              if (!alive.current) return;
+              clearForm();
+              setMessage(
+                "계정의 AI 연결을 해제했어요. 비밀번호 보관함은 그대로 남아요.",
+              );
+            })
+          }
+          useSaved={() => {
+            if (accountKey) {
+              clearForm();
+              setAi(accountAISettings(accountKey, user.id));
+            }
+          }}
+        />
+      )}
+      <details
+        className="password-vault"
+        open={!user || (saved && !accountKey && !ai.apiKey)}
+      >
+        <summary>
+          {user ? "기존 비밀번호 보관함 · 선택사항" : "비밀번호로 암호화 보관"}
+        </summary>
+        <div className="ai-vault" aria-busy={busy}>
+          <div className="vault-heading">
+            {saved ? <ShieldCheck size={17} /> : <LockKeyhole size={17} />}
+            <strong>
+              {saved ? "암호화된 키 보관 중" : "이 브라우저에 키 보관하기"}
+            </strong>
+            {saved && <span>{ai.apiKey ? "AI 사용 가능" : "잠겨 있음"}</span>}
+          </div>
+          <p className="vault-copy">
+            {saved
+              ? "저장된 키와 모델은 이 브라우저에서만 불러올 수 있어요. 현재 입력을 바꾸면 다시 저장해 주세요."
+              : "비밀번호로 암호화하면 새로고침해도 키가 남아요. 저장하지 않으면 이 탭에서만 사용해요."}
+          </p>
+          {!available && (
+            <p className="vault-error" role="status">
+              이 환경에서는 암호화 저장을 사용할 수 없어요. HTTPS와 Web Crypto를
+              지원하는 브라우저가 필요해요.
             </p>
-            <label htmlFor="vault-new-password">
-              잠금 비밀번호 · 12자 이상
-            </label>
-            <input
-              id="vault-new-password"
-              type="password"
-              autoComplete="new-password"
-              autoCapitalize="off"
-              spellCheck={false}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy}
-              minLength={12}
-              maxLength={256}
-              required
-            />
-            <label htmlFor="vault-confirmation">잠금 비밀번호 확인</label>
-            <input
-              id="vault-confirmation"
-              type="password"
-              autoComplete="new-password"
-              autoCapitalize="off"
-              spellCheck={false}
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-              disabled={busy}
-              minLength={12}
-              maxLength={256}
-              required
-            />
-            <div className="vault-actions">
-              <button className="button primary small" disabled={busy}>
+          )}
+          {!loaded && !error && (
+            <p className="vault-copy" role="status">
+              저장된 키 확인 중…
+            </p>
+          )}
+
+          {saved && !ai.apiKey && !deleting && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void unlock();
+              }}
+            >
+              <label htmlFor="vault-password">잠금 비밀번호</label>
+              <input
+                id="vault-password"
+                type="password"
+                autoComplete="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={busy || !available}
+                minLength={12}
+                maxLength={256}
+                required
+                placeholder="저장할 때 정한 비밀번호"
+              />
+              <button
+                className="button primary small"
+                disabled={busy || !available}
+              >
                 {busy ? (
                   <LoaderCircle className="spin" size={15} />
                 ) : (
-                  <ShieldCheck size={15} />
-                )}
-                암호화해서 저장
+                  <KeyRound size={15} />
+                )}{" "}
+                잠금 해제
               </button>
-              <button
-                type="button"
-                className="text-button"
-                disabled={busy}
-                onClick={clearForm}
-              >
-                취소
-              </button>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
 
-        {saved && !saving && (
-          <div className="vault-delete">
-            {deleting ? (
-              <>
-                <p className="vault-copy">
-                  저장된 키를 삭제할까요? 다시 쓰려면 API 키를 입력해야 해요.
-                  제공자 계정의 키 자체는 폐기되지 않아요.
-                </p>
-                <div className="vault-actions">
-                  <button
-                    className="button small"
-                    disabled={busy}
-                    onClick={() => void remove()}
-                  >
-                    <Trash2 size={14} />
-                    저장된 키 삭제하기
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={busy}
-                    onClick={clearForm}
-                  >
-                    취소
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button
-                className="text-button"
+          {ai.apiKey && !saving && !deleting && (
+            <button
+              className="button small"
+              disabled={busy || !loaded || !available}
+              onClick={() => {
+                clearForm();
+                setSaving(true);
+              }}
+            >
+              <LockKeyhole size={15} />
+              {saved ? "현재 키로 다시 저장" : "암호화 저장 설정"}
+            </button>
+          )}
+
+          {ai.apiKey && saving && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void save();
+              }}
+            >
+              <p className="vault-copy">
+                나만 아는 비밀번호를 정해 주세요. 비밀번호는 저장하지 않으며,
+                잊으면 API 키를 다시 등록해야 해요.
+                {saved && " 저장하면 기존 키와 비밀번호를 교체해요."}
+              </p>
+              <label htmlFor="vault-new-password">
+                잠금 비밀번호 · 12자 이상
+              </label>
+              <input
+                id="vault-new-password"
+                type="password"
+                autoComplete="new-password"
+                autoCapitalize="off"
+                spellCheck={false}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 disabled={busy}
-                onClick={() => {
-                  clearForm();
-                  setDeleting(true);
-                }}
-              >
-                저장된 키 삭제
-              </button>
-            )}
-          </div>
-        )}
-        {error && (
-          <p role="alert" className="vault-error">
-            {error}
-          </p>
-        )}
-        {message && (
-          <p role="status" className="vault-success">
-            {message}
-          </p>
-        )}
-      </div>
+                minLength={12}
+                maxLength={256}
+                required
+              />
+              <label htmlFor="vault-confirmation">잠금 비밀번호 확인</label>
+              <input
+                id="vault-confirmation"
+                type="password"
+                autoComplete="new-password"
+                autoCapitalize="off"
+                spellCheck={false}
+                value={confirmation}
+                onChange={(e) => setConfirmation(e.target.value)}
+                disabled={busy}
+                minLength={12}
+                maxLength={256}
+                required
+              />
+              <div className="vault-actions">
+                <button className="button primary small" disabled={busy}>
+                  {busy ? (
+                    <LoaderCircle className="spin" size={15} />
+                  ) : (
+                    <ShieldCheck size={15} />
+                  )}
+                  암호화해서 저장
+                </button>
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={busy}
+                  onClick={clearForm}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          )}
+
+          {saved && !saving && (
+            <div className="vault-delete">
+              {deleting ? (
+                <>
+                  <p className="vault-copy">
+                    저장된 키를 삭제할까요? 다시 쓰려면 API 키를 입력해야 해요.
+                    제공자 계정의 키 자체는 폐기되지 않아요.
+                  </p>
+                  <div className="vault-actions">
+                    <button
+                      className="button small"
+                      disabled={busy}
+                      onClick={() => void remove()}
+                    >
+                      <Trash2 size={14} />
+                      저장된 키 삭제하기
+                    </button>
+                    <button
+                      className="text-button"
+                      disabled={busy}
+                      onClick={clearForm}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() => {
+                    clearForm();
+                    setDeleting(true);
+                  }}
+                >
+                  저장된 키 삭제
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
+      {error && (
+        <p role="alert" className="vault-error">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="vault-success">
+          {message}
+        </p>
+      )}
       <p className="form-hint">
-        새로고침·로그아웃 후에는 다시 잠금을 풀어 주세요. 암호화된 키는
+        비밀번호 보관함은 새로고침 후 다시 잠금을 풀어 주세요. 저장된 키는
         GitHub·로컬 폴더·JSON 내보내기에 포함되지 않아요. 분석할 때는
         Cloudflare를 거쳐 선택한 AI 제공자에게 키와 논문 텍스트를 전달합니다.
       </p>

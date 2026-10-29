@@ -25,7 +25,7 @@ import {
 } from "@/lib/model";
 import { getSource } from "@/lib/source";
 import { api } from "@/lib/api";
-import type { AISettings } from "@/lib/ai-vault";
+import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
 export type { AISettings } from "@/lib/ai-vault";
 export function Reader({
   paper,
@@ -80,7 +80,7 @@ export function Reader({
   const update = (changes: Partial<Paper>) =>
     onUpdate({ ...changes, updatedAt: new Date().toISOString() });
   const analyze = async () => {
-    if (!settings.apiKey) {
+    if (!hasAIConnection(settings)) {
       openSettings();
       return;
     }

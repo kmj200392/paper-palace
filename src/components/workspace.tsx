@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { Brand } from "./brand";
 import { AIConnection } from "./ai-connection";
+import { useAccountAI } from "./use-account-ai";
+import { hasAIConnection } from "@/lib/ai-settings";
 import { Dialog } from "./dialog";
 import { Graph } from "./graph";
 import { Reader, type AISettings } from "./reader";
@@ -88,6 +90,7 @@ export default function Workspace() {
       label: "builds on",
       note: "",
     });
+  const accountAI = useAccountAI(user?.id, setAi);
   const fileInput = useRef<HTMLInputElement>(null),
     latest = useRef(library),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -365,7 +368,7 @@ export default function Workspace() {
       });
       await saveLibrary(account, latest.current);
       await api("/auth/logout", { method: "POST" });
-      setAi((a) => ({ ...a, apiKey: "" }));
+      setAi((a) => ({ ...a, apiKey: "", accountId: undefined }));
       location.assign("/app/");
     } catch (e) {
       notify((e as Error).message);
@@ -424,7 +427,7 @@ export default function Workspace() {
     notify("두 논문을 연결했어요.");
   };
   const suggestAI = async () => {
-    if (!ai.apiKey) {
+    if (!hasAIConnection(ai)) {
       setSettingsOpen(true);
       return;
     }
@@ -589,11 +592,11 @@ export default function Workspace() {
           </span>
           <div>
             <button
-              className={`key-status ${ai.apiKey ? "connected" : ""}`}
+              className={`key-status ${hasAIConnection(ai) ? "connected" : ""}`}
               onClick={() => setSettingsOpen(true)}
             >
               <KeyRound size={14} />
-              {ai.apiKey ? "AI 연결됨" : "AI 연결"}
+              {hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
             </button>
             <button
               className="text-button sync-button"
@@ -1071,7 +1074,9 @@ export default function Workspace() {
         title="나의 연구 공간 설정"
         wide
       >
-        {settingsOpen && <AIConnection ai={ai} setAi={setAi} />}
+        {settingsOpen && (
+          <AIConnection ai={ai} setAi={setAi} user={user} account={accountAI} />
+        )}
         <section className="settings-section folder-settings">
           <h3>
             <FolderOpen size={18} /> 로컬 폴더
@@ -1348,8 +1353,8 @@ export default function Workspace() {
           onClick={() => {
             setSettingsOpen(false);
             notify(
-              ai.apiKey
-                ? "이 탭에서 AI를 사용할 준비가 됐어요."
+              hasAIConnection(ai)
+                ? "AI를 사용할 준비가 됐어요."
                 : "설정을 닫았어요.",
             );
           }}

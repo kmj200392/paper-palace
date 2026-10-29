@@ -1699,6 +1699,22 @@ summary::-webkit-details-marker {
 .vault-delete > .text-button {
   font-size: 11px;
 }
+.password-vault {
+  margin-top: 18px;
+}
+.password-vault > summary {
+  color: #66765b;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.password-vault > .ai-vault {
+  margin-top: 10px;
+}
+.account-ai {
+  border-color: #bbcbb1;
+  background: #edf2e7;
+}
 @media (max-width: 480px) {
   .ai-settings .settings-row {
     grid-template-columns: 1fr;

@@ -1,7 +1,16 @@
 import { z } from "zod";
+import {
+  aiProviderSchema,
+  type AIProvider,
+  type AISettings,
+} from "./ai-settings";
+export {
+  defaultAISettings,
+  type AIProvider,
+  type AISettings,
+} from "./ai-settings";
 
-const providerSchema = z.enum(["openai", "anthropic"]);
-export type AIProvider = z.infer<typeof providerSchema>;
+const providerSchema = aiProviderSchema;
 const settingsSchema = z
   .object({
     provider: providerSchema,
@@ -9,7 +18,6 @@ const settingsSchema = z
     apiKey: z.string().trim().min(15).max(500),
   })
   .strict();
-export type AISettings = z.infer<typeof settingsSchema>;
 
 const ITERATIONS = 600_000;
 const encoder = new TextEncoder();
@@ -34,11 +42,6 @@ export type EncryptedAIKey = z.infer<typeof recordSchema>;
 export const vaultStorageKey = (provider: AIProvider) =>
   `ai-vault:v1:${provider}`;
 export const providerPreferenceKey = "ai-provider";
-export const defaultAISettings = (provider: AIProvider): AISettings => ({
-  provider,
-  model: provider === "openai" ? "gpt-5-mini" : "claude-sonnet-4-5",
-  apiKey: "",
-});
 export const supportsVault = () => !!globalThis.crypto?.subtle;
 
 function checkCrypto() {
@@ -85,7 +88,11 @@ export async function encryptAIKey(
 ): Promise<EncryptedAIKey> {
   checkCrypto();
   checkPassphrase(passphrase);
-  const parsed = settingsSchema.safeParse(settings);
+  const parsed = settingsSchema.safeParse({
+    provider: settings.provider,
+    model: settings.model,
+    apiKey: settings.apiKey,
+  });
   if (!parsed.success)
     throw new Error(
       "모델 ID와 API 키를 확인해 주세요. API 키는 15~500자로 입력해 주세요.",
