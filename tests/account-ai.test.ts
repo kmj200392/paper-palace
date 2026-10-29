@@ -286,11 +286,21 @@ test("legacy saved keys restore Luna for analysis and graph without exposing pla
               tags: [],
               limitations: [],
               sections: {
-                motivation: [],
-                coreConcept: [],
-                method: [],
-                experimentalSetup: [],
-                results: [],
+                motivation: [
+                  { heading: "Test", text: "Test explanation", citations: [] },
+                ],
+                coreConcept: [
+                  { heading: "Test", text: "Test explanation", citations: [] },
+                ],
+                method: [
+                  { heading: "Test", text: "Test explanation", citations: [] },
+                ],
+                experimentalSetup: [
+                  { heading: "Test", text: "Test explanation", citations: [] },
+                ],
+                results: [
+                  { heading: "Test", text: "Test explanation", citations: [] },
+                ],
               },
             }
           : { relations: [] };

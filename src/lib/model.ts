@@ -22,6 +22,7 @@ export const citationSchema = z.object({
   quote: z.string().max(400),
 });
 const pointSchema = z.object({
+  heading: z.string().min(1).max(120).optional(),
   text: z.string().max(2400),
   citations: z.array(citationSchema).max(5),
 });
@@ -29,13 +30,33 @@ export const analysisSchema = z.object({
   positioning: z.string().max(1600),
   tags: z.array(z.string().max(60)).max(8),
   sections: z.object({
-    motivation: z.array(pointSchema).max(6),
-    coreConcept: z.array(pointSchema).max(6),
-    method: z.array(pointSchema).max(6),
-    experimentalSetup: z.array(pointSchema).max(6),
-    results: z.array(pointSchema).max(6),
+    motivation: z.array(pointSchema).max(8),
+    coreConcept: z.array(pointSchema).max(8),
+    method: z.array(pointSchema).max(8),
+    experimentalSetup: z.array(pointSchema).max(8),
+    results: z.array(pointSchema).max(8),
   }),
   limitations: z.array(z.string().max(1200)).max(8),
+});
+export const explanationVersion = 2;
+// Keep existing saved summaries readable; new generations require titled,
+// nonempty sections, including an explicit explanation when evidence is absent.
+const explainedPoints = z
+  .array(
+    pointSchema
+      .required({ heading: true })
+      .extend({ text: z.string().min(1).max(2400) }),
+  )
+  .min(1)
+  .max(8);
+export const analysisOutputSchema = analysisSchema.extend({
+  sections: z.object({
+    motivation: explainedPoints,
+    coreConcept: explainedPoints,
+    method: explainedPoints,
+    experimentalSetup: explainedPoints,
+    results: explainedPoints,
+  }),
 });
 export type Analysis = z.infer<typeof analysisSchema>;
 export type Citation = z.infer<typeof citationSchema>;
@@ -67,6 +88,7 @@ export const paperSchema = z.object({
       createdAt: z.string().datetime(),
       sourceHash: z.string().max(100),
       coverage: z.string().max(300),
+      explanationVersion: z.number().int().positive().optional(),
     })
     .nullable(),
 });

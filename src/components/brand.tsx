@@ -6,8 +6,10 @@ export function Brand({ compact = false }: { compact?: boolean }) {
       className={`brand ${compact ? "compact" : ""}`}
       aria-label="Paper Palace 홈"
     >
-      <span className="brand-mark">
-        <img src="/brand/paper-palace.png" alt="" width="1254" height="1254" />
+      <span className="brand-mark" aria-hidden="true">
+        <svg viewBox="240 200 850 750" focusable="false">
+          <image href="/brand/paper-palace.png" width="1254" height="1254" />
+        </svg>
       </span>
       <span>
         Paper Palace<small>YOUR PERSONAL RESEARCH GRAPH</small>

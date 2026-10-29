@@ -256,20 +256,15 @@ a:hover {
   line-height: 1.4;
 }
 .brand-mark {
-  position: relative;
   width: 40px;
-  height: 44px;
-  overflow: hidden;
+  aspect-ratio: 850 / 750;
   display: block;
   flex-shrink: 0;
 }
-.brand-mark img {
-  position: absolute;
-  width: 64px;
-  height: 64px;
-  max-width: none;
-  left: -10px;
-  top: -9px;
+.brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .brand.compact > span:last-child {
   font-size: 22px;
@@ -968,13 +963,6 @@ summary::-webkit-details-marker {
 }
 .sidebar .brand-mark {
   width: 34px;
-  height: 38px;
-}
-.sidebar .brand-mark img {
-  width: 57px;
-  height: 57px;
-  left: -10px;
-  top: -8px;
 }
 .sidebar-label {
   font-size: 8px;
@@ -1213,23 +1201,19 @@ summary::-webkit-details-marker {
   width: 360px;
   color: #89937c;
 }
+.search-field > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
 .search-field input {
   border: 0;
   background: transparent;
   font-size: 11px;
   padding: 8px 0;
-  width: 100%;
+  flex: 1;
+  width: 0;
   min-width: 0;
-}
-.search-field kbd {
-  font-size: 16px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  height: 20px;
-  width: 21px;
-  display: grid;
-  place-items: center;
-  color: #a0a895;
 }
 .filter-field {
   display: flex;
@@ -2105,12 +2089,40 @@ summary::-webkit-details-marker {
   margin-top: 5px;
 }
 .analysis-point {
-  margin-top: 17px;
+  margin-top: 24px;
+}
+.analysis-point > h4 {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #3f572f;
+  margin-bottom: 8px;
 }
 .analysis-point > p {
-  font-size: 12px;
-  color: #647c50;
+  font-size: 13px;
+  color: #526643;
   line-height: 1.9;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.analysis-point > p + p {
+  margin-top: 10px;
+}
+.analysis-upgrade {
+  margin: 20px 27px 0;
+  padding: 16px;
+  border: 1px solid #d3dfc4;
+  border-radius: 6px;
+  background: #f4f6ee;
+  color: #526643;
+}
+.analysis-upgrade strong {
+  font-size: 13px;
+}
+.analysis-upgrade p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 6px 0 12px;
 }
 .citations {
   display: flex;
@@ -3391,9 +3403,7 @@ summary::-webkit-details-marker {
   }
   .search-field > svg {
     width: 14px;
-  }
-  .search-field kbd {
-    display: none;
+    height: 14px;
   }
   .filter-field {
     gap: 3px;
@@ -3619,14 +3629,6 @@ summary::-webkit-details-marker {
     transition: none !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Crop the approved full lockup to its monogram without modifying the asset. */
-.brand-mark {
-  height: 40px;
-}
-.sidebar .brand-mark {
-  height: 35px;
 }
 
 .graph-actionbar {

@@ -22,6 +22,7 @@ import {
   sectionLabels,
   citationMatches,
   verifyAnalysis,
+  explanationVersion,
 } from "@/lib/model";
 import { getSource } from "@/lib/source";
 import { api } from "@/lib/api";
@@ -111,10 +112,11 @@ export function Reader({
           createdAt: new Date().toISOString(),
           sourceHash: source.hash,
           coverage: `${source.format.toUpperCase()}에서 추출한 전체 텍스트 · 그림 픽셀은 분석하지 않음`,
+          explanationVersion,
         },
         updatedAt: new Date().toISOString(),
       });
-      notify("다섯 가지 관점으로 논문을 정리했어요.");
+      notify("배경부터 방법과 실험까지, 상세 해설을 정리했어요.");
     } catch (e) {
       notify((e as Error).message);
     } finally {
@@ -398,7 +400,7 @@ export function Reader({
                     <p>
                       논문에서 출발한 질문부터 실험 결과까지.
                       <br />
-                      근거를 따라 읽는 AI 요약을 만들어 보세요.
+                      방법의 흐름과 실험의 의미를 원문 근거와 함께 풀어드려요.
                     </p>
                     <ol>
                       {sectionKeys.map((k) => (
@@ -419,13 +421,14 @@ export function Reader({
                         <Sparkles size={16} />
                       )}{" "}
                       {analyzing
-                        ? "논문을 읽고 정리하는 중…"
-                        : "AI로 논문 정리하기"}
+                        ? "원문을 읽고 상세 해설을 쓰는 중…"
+                        : "AI로 상세 해설 만들기"}
                     </button>
                     <small>
                       선택한 AI에 원문 텍스트가 전달되며
                       <br />
-                      본인 API 계정의 사용료가 발생합니다.
+                      본인 API 계정의 사용료가 발생합니다. 상세 해설은 잠시
+                      시간이 걸릴 수 있어요.
                     </small>
                   </div>
                 ) : (
@@ -442,6 +445,30 @@ export function Reader({
                         ))}
                       </div>
                     </div>
+                    {paper.analysisMeta?.explanationVersion !==
+                      explanationVersion && (
+                      <div className="analysis-upgrade">
+                        <strong>배경부터 실험까지, 더 깊이 읽어보세요.</strong>
+                        <p>
+                          방법의 단계별 흐름과 실험 조건·결과의 의미를 자세히
+                          풀어드려요. 새 해설이 완성되면 지금 요약을 교체합니다.
+                        </p>
+                        <button
+                          className="button small"
+                          disabled={analyzing || !source}
+                          onClick={analyze}
+                        >
+                          {analyzing ? (
+                            <LoaderCircle size={15} className="spin" />
+                          ) : (
+                            <Sparkles size={15} />
+                          )}
+                          {analyzing
+                            ? "상세 해설을 쓰는 중…"
+                            : "상세 해설로 다시 정리"}
+                        </button>
+                      </div>
+                    )}
                     {stale && (
                       <p className="inline-warning">
                         원문이 이전 분석 때와 달라졌어요. 정확한 근거 연결을
@@ -462,7 +489,13 @@ export function Reader({
                         </div>
                         {verified.sections[key].map((point, j) => (
                           <div className="analysis-point" key={j}>
-                            <p>{point.text}</p>
+                            {point.heading && <h4>{point.heading}</h4>}
+                            {point.text
+                              .split(/\n\s*\n/)
+                              .filter(Boolean)
+                              .map((paragraph, p) => (
+                                <p key={p}>{paragraph}</p>
+                              ))}
                             <div className="citations">
                               {point.citations.map((c, k) => (
                                 <button
@@ -516,7 +549,9 @@ export function Reader({
                         ) : (
                           <Sparkles size={15} />
                         )}
-                        다시 분석하기
+                        {analyzing
+                          ? "상세 해설을 쓰는 중…"
+                          : "상세 해설 다시 만들기"}
                       </button>
                     </div>
                   </>

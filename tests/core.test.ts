@@ -197,6 +197,7 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
   const originalFetch = globalThis.fetch;
   const fakeKey = "sk-test-not-a-real-credential";
   const point = {
+    heading: "원문에서 확인한 결과",
     text: "Test result",
     citations: [
       { blockId: "b1", quote: "Attention connects distant tokens" },
@@ -209,10 +210,10 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
     limitations: [],
     sections: {
       motivation: [point],
-      coreConcept: [],
-      method: [],
-      experimentalSetup: [],
-      results: [],
+      coreConcept: [point],
+      method: [point],
+      experimentalSetup: [point],
+      results: [point],
     },
   };
   let called = false;
@@ -227,6 +228,13 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
     assert.equal(sent.model, "gpt-6-luna");
     assert.equal(sent.store, false);
     assert.equal(sent.text.format.strict, true);
+    assert.equal(sent.text.verbosity, "high");
+    assert(sent.max_output_tokens >= 20000);
+    assert(
+      sent.text.format.schema.properties.sections.properties.method.items.required.includes(
+        "heading",
+      ),
+    );
     return new Response(
       JSON.stringify({
         status: "completed",

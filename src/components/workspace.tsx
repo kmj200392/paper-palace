@@ -719,14 +719,14 @@ export default function Workspace() {
               </div>
               <div className="library-tools">
                 <label className="search-field">
-                  <Search size={17} />
+                  <Search size={18} aria-hidden="true" />
                   <span className="sr-only">논문 검색</span>
                   <input
+                    type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="제목, 저자, 태그, 메모 검색"
                   />
-                  <kbd>⌕</kbd>
                 </label>
                 {view === "library" ? (
                   <label className="filter-field">
