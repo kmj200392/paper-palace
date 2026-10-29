@@ -25,11 +25,8 @@ import {
 } from "@/lib/model";
 import { getSource } from "@/lib/source";
 import { api } from "@/lib/api";
-export type AISettings = {
-  provider: "openai" | "anthropic";
-  model: string;
-  apiKey: string;
-};
+import type { AISettings } from "@/lib/ai-vault";
+export type { AISettings } from "@/lib/ai-vault";
 export function Reader({
   paper,
   onBack,

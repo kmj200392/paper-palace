@@ -33,11 +33,30 @@ export async function writeLocal(key: string, value: unknown) {
       d.close();
       resolve();
     };
-    t.onerror = () => {
+    t.onabort = t.onerror = () => {
       d.close();
       reject(
         new Error(
           "저장 공간이 부족하거나 브라우저 저장이 차단되어 있어요. JSON으로 내보내 주세요.",
+        ),
+      );
+    };
+  });
+}
+export async function deleteLocal(key: string) {
+  const d = await db();
+  return new Promise<void>((resolve, reject) => {
+    const t = d.transaction("data", "readwrite");
+    t.objectStore("data").delete(key);
+    t.oncomplete = () => {
+      d.close();
+      resolve();
+    };
+    t.onabort = t.onerror = () => {
+      d.close();
+      reject(
+        new Error(
+          "브라우저에서 저장된 키를 삭제하지 못했어요. 다시 시도해 주세요.",
         ),
       );
     };

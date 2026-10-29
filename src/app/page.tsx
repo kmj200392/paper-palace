@@ -197,8 +197,9 @@ export default function Home() {
                 <KeyRound size={24} />
                 <h3>Your key. Your choice.</h3>
                 <p>
-                  나의 OpenAI 또는 Claude API 키로 분석하세요. 키는 열려 있는
-                  탭에서만 유지되며, AI 이용 요금은 해당 제공자에서 부과됩니다.
+                  나의 OpenAI 또는 Claude API 키로 분석하세요. 키를 브라우저에
+                  암호화해 보관할 수 있으며, AI 이용 요금은 해당 제공자에서
+                  부과됩니다.
                 </p>
               </article>
               <article>

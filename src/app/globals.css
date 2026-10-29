@@ -1645,6 +1645,66 @@ summary::-webkit-details-marker {
   right: 12px;
   font-size: 10px;
 }
+.ai-vault {
+  margin-top: 16px;
+  padding: 17px;
+  border: 1px solid #d8dfcc;
+  border-radius: 8px;
+  background: #f3f5ec;
+}
+.vault-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: #496044;
+  font-size: 12px;
+}
+.vault-heading span {
+  font-size: 10px;
+  border: 1px solid #cbd5be;
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+.vault-copy,
+.vault-error,
+.vault-success {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.vault-copy {
+  color: #66765b;
+}
+.vault-error {
+  color: #9b3e30;
+}
+.vault-success {
+  color: #3f623d;
+}
+.ai-vault form > .button {
+  margin-top: 12px;
+}
+.vault-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+}
+.vault-delete {
+  margin-top: 14px;
+}
+.vault-delete > .text-button {
+  font-size: 11px;
+}
+@media (max-width: 480px) {
+  .ai-settings .settings-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
 .account-line {
   display: flex;
   justify-content: space-between;
@@ -3726,4 +3786,6 @@ summary::-webkit-details-marker {
   max-height: 300px;
   overflow: auto;
 }
-.dialog input.sr-only { width: 1px; }
+.dialog input.sr-only {
+  width: 1px;
+}

@@ -27,6 +27,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Brand } from "./brand";
+import { AIConnection } from "./ai-connection";
 import { Dialog } from "./dialog";
 import { Graph } from "./graph";
 import { Reader, type AISettings } from "./reader";
@@ -1070,86 +1071,7 @@ export default function Workspace() {
         title="나의 연구 공간 설정"
         wide
       >
-        <section className="settings-section">
-          <h3>
-            <KeyRound size={18} /> AI 연결
-          </h3>
-          <p>
-            나의 API 키로 논문을 읽어요. ChatGPT·Claude 구독과 API 사용료는
-            별개입니다.
-          </p>
-          <div className="settings-row">
-            <label>
-              AI 제공자
-              <select
-                value={ai.provider}
-                onChange={(e) =>
-                  setAi({
-                    provider: e.target.value as AISettings["provider"],
-                    model:
-                      e.target.value === "openai"
-                        ? "gpt-5-mini"
-                        : "claude-sonnet-4-5",
-                    apiKey: "",
-                  })
-                }
-              >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic Claude</option>
-              </select>
-            </label>
-            <label>
-              모델 ID
-              <input
-                value={ai.model}
-                onChange={(e) =>
-                  setAi((a) => ({ ...a, model: e.target.value }))
-                }
-                placeholder="모델 ID"
-                maxLength={100}
-              />
-            </label>
-          </div>
-          <label htmlFor="api-key">API 키</label>
-          <div className="key-input">
-            <input
-              id="api-key"
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              value={ai.apiKey}
-              onChange={(e) =>
-                setAi((a) => ({ ...a, apiKey: e.target.value.trim() }))
-              }
-              placeholder={ai.provider === "openai" ? "sk-…" : "sk-ant-…"}
-            />
-            {ai.apiKey && (
-              <button
-                className="text-button"
-                onClick={() => setAi((a) => ({ ...a, apiKey: "" }))}
-              >
-                해제
-              </button>
-            )}
-          </div>
-          <p className="form-hint">
-            키는 이 탭에서만 유지하고, 새로고침하면 지워요. 분석할 때
-            Cloudflare를 거쳐 선택한 AI 제공자에게 키와 논문 텍스트를
-            전달합니다.
-          </p>
-          <a
-            className="text-link small"
-            href={
-              ai.provider === "openai"
-                ? "https://platform.openai.com/api-keys"
-                : "https://console.anthropic.com/settings/keys"
-            }
-            target="_blank"
-            rel="noreferrer"
-          >
-            API 키 발급하기 <ArrowUpRight size={13} />
-          </a>
-        </section>
+        {settingsOpen && <AIConnection ai={ai} setAi={setAi} />}
         <section className="settings-section folder-settings">
           <h3>
             <FolderOpen size={18} /> 로컬 폴더

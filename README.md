@@ -44,7 +44,11 @@ A Worker custom domain route connects the domain; configure your own domain in `
 
 ## Data and privacy
 
-API keys live only in the current browser tab's memory. Requests pass through the stateless Worker to the chosen model provider. No keys are stored in GitHub or application logs. OpenAI requests use `store: false`; provider retention rules still apply.
+API keys default to the current tab's memory. In Settings → AI connection, users can optionally save each provider's key and model in an encrypted browser vault. After a refresh or logout, enter the vault passphrase to unlock it. Lock clears the current tab's key; delete removes that provider's saved ciphertext and clears this tab's key. Deletion does not revoke the provider key or clear other already-unlocked tabs.
+
+The vault uses browser-native AES-256-GCM with a fresh 96-bit IV and 128-bit salt for every save, and PBKDF2-HMAC-SHA256 (600,000 iterations). A 12–256 character passphrase derives a non-extractable key; neither the passphrase nor the derived key is persisted. Version and provider are authenticated with additional data. Strict envelope validation bounds ciphertext size and fixes KDF parameters before decryption. Only ciphertext and public encryption parameters are written to IndexedDB (`ai-vault:v1:<provider>`); the last selected provider is a separate non-secret preference. The vault belongs to this browser profile and site, independently of GitHub login. It is excluded from library exports, folders, GitHub sync, and login handoffs. Forgotten passphrases cannot be recovered; re-register the API key. Clearing site data also deletes the vault.
+
+Encryption protects stored key material at rest, not a compromised browser or code running in an unlocked page. JavaScript strings cannot be reliably erased from memory; reload/lock removes application references, not a guaranteed memory wipe. Requests pass through the stateless Worker to the chosen model provider. No keys are stored in GitHub or application logs. OpenAI requests use `store: false`; provider retention rules still apply.
 
 Private repositories store `paper-palace/library.json`. Full paper sources stay in the browser cache. Sync merges items by modification timestamp and honors deletion tombstones. Git history retains prior revisions. Export/import validates the schema before merging. Browser caches are separated by GitHub account; explicitly starting GitHub login carries the current tab’s library and folder connection through sign-in.
 
