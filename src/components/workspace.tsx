@@ -29,7 +29,7 @@ import {
 import { Brand } from "./brand";
 import { AIConnection } from "./ai-connection";
 import { useAccountAI } from "./use-account-ai";
-import { hasAIConnection } from "@/lib/ai-settings";
+import { defaultAISettings, hasAIConnection } from "@/lib/ai-settings";
 import { Dialog } from "./dialog";
 import { Graph } from "./graph";
 import { Reader, type AISettings } from "./reader";
@@ -79,11 +79,7 @@ export default function Workspace() {
       githubConfigured: false,
       githubAppSlug: "",
     }),
-    [ai, setAi] = useState<AISettings>({
-      provider: "openai",
-      model: "gpt-5-mini",
-      apiKey: "",
-    }),
+    [ai, setAi] = useState<AISettings>(() => defaultAISettings("openai")),
     [edgeDraft, setEdgeDraft] = useState({
       source: "",
       target: "",

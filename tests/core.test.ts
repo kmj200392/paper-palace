@@ -224,6 +224,7 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
       `Bearer ${fakeKey}`,
     );
     const sent = JSON.parse(init!.body as string);
+    assert.equal(sent.model, "gpt-6-luna");
     assert.equal(sent.store, false);
     assert.equal(sent.text.format.strict, true);
     return new Response(
@@ -247,7 +248,7 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
         headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "openai",
-          model: "gpt-5-mini",
+          model: "gpt-6-luna",
           apiKey: fakeKey,
           title: "Test paper",
           blocks: [
@@ -319,7 +320,7 @@ test("AI graph proposals cannot reference unknown papers or self edges", async (
         headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "openai",
-          model: "gpt-5-mini",
+          model: "gpt-6-luna",
           apiKey: "sk-fake-test-credential",
           papers: ["a", "b"].map((id) => ({
             id,

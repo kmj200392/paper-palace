@@ -8,7 +8,11 @@ import {
   aiCookieName,
   AI_COOKIE_AGE,
 } from "../worker/ai-credentials";
-import { hasAIConnection } from "../src/lib/ai-settings";
+import {
+  accountAISettings,
+  hasAIConnection,
+  type AccountAIKey,
+} from "../src/lib/ai-settings";
 
 const env = {
   APP_ORIGIN: "https://paperpalace.minjaek.im",
@@ -249,9 +253,20 @@ test("saved-key analysis and graph calls fail closed after logout, expiry or acc
   assert.equal(calls, 0);
 });
 
-test("analysis and graph calls use the saved key without a plaintext key in the request or response", async (t) => {
+test("legacy saved keys restore Luna for analysis and graph without exposing plaintext keys", async (t) => {
   const auth = await session();
-  const cookies = `${auth}; ${await keyCookie()}`;
+  const legacy = await saveAccountKey(env.SESSION_SECRET, 42, {
+    ...settings,
+    model: "gpt-5-mini",
+  });
+  const cookies = `${auth}; ${cookiePair(legacy.cookie)}`;
+  const metadata = await worker.fetch(request("/api/ai-keys", cookies), env);
+  assert.equal(metadata.status, 200);
+  const data = (await metadata.json()) as { keys: AccountAIKey[] };
+  assert(!JSON.stringify(data).includes(testKey));
+  const restored = accountAISettings(data.keys[0], 42);
+  assert.equal(restored.apiKey, "");
+  assert.equal(restored.model, "gpt-6-luna");
   let calls = 0;
   t.mock.method(
     globalThis,
@@ -263,6 +278,7 @@ test("analysis and graph calls use the saved key without a plaintext key in the 
         `Bearer ${testKey}`,
       );
       const body = JSON.parse(init.body as string);
+      assert.equal(body.model, "gpt-6-luna");
       const result =
         body.text.format.name === "paper_analysis"
           ? {
@@ -293,7 +309,10 @@ test("analysis and graph calls use the saved key without a plaintext key in the 
     ["/api/analyze", analyze],
     ["/api/relate", relation],
   ] as const) {
-    const r = await worker.fetch(request(path, cookies, "POST", payload), env);
+    const r = await worker.fetch(
+      request(path, cookies, "POST", { ...payload, ...restored }),
+      env,
+    );
     assert.equal(r.status, 200);
     assert(!(await r.text()).includes(testKey));
   }

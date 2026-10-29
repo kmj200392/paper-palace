@@ -3,6 +3,7 @@ import {
   aiProviderSchema,
   aiModelSchema,
   apiKeySchema,
+  restoredAIModel,
   type AIProvider,
   type AccountAIKey,
 } from "../src/lib/ai-settings";
@@ -31,7 +32,7 @@ const credentialSchema = z
 type Credential = z.infer<typeof credentialSchema>;
 export const keyMetadata = (key: Credential): AccountAIKey => ({
   provider: key.provider,
-  model: key.model,
+  model: restoredAIModel(key.provider, key.model),
   updatedAt: key.updatedAt,
   expires: key.expires,
 });

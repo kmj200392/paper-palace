@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   aiProviderSchema,
+  restoredAIModel,
   type AIProvider,
   type AISettings,
 } from "./ai-settings";
@@ -160,7 +161,10 @@ export async function decryptAIKey(
       JSON.parse(new TextDecoder().decode(plaintext)),
     );
     if (settings.provider !== provider) throw new Error("Provider mismatch");
-    return settings;
+    return {
+      ...settings,
+      model: restoredAIModel(settings.provider, settings.model),
+    };
   } catch {
     throw new Error(
       "비밀번호가 맞지 않거나 저장된 키가 손상됐어요. 비밀번호를 다시 확인해 주세요.",

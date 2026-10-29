@@ -10,6 +10,7 @@ Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries,
 
 - arXiv metadata and version-aware HTML/PDF reading; original PDF alongside extracted text.
 - Motivation, core concept, method, experimental setup and results, generated with your OpenAI or Anthropic API key.
+- OpenAI defaults to `gpt-6-luna` for paper analysis and graph suggestions. Saved connections using the former `gpt-5-mini` default restore with Luna; other saved model IDs are preserved.
 - Verified short source quotations link back to the original text. Unsupported citations are removed; generated claims still require human review.
 - Local folder autosave plus IndexedDB cache, tags, reading status, notes, JSON import/export, draggable graph and directed relationships. AI can propose connections between analyzed papers; proposals stay dashed until you review and adopt them.
 - GitHub App OAuth (PKCE/state, encrypted HttpOnly sessions) and user-selected private repository synchronization. No central user database.

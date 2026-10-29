@@ -32,9 +32,14 @@ export const hasAIConnection = (settings: AISettings) =>
   !!(settings.apiKey || settings.accountId);
 export const defaultAISettings = (provider: AIProvider): AISettings => ({
   provider,
-  model: provider === "openai" ? "gpt-5-mini" : "claude-sonnet-4-5",
+  model: provider === "openai" ? "gpt-6-luna" : "claude-sonnet-4-5",
   apiKey: "",
 });
+// Older connections persisted the former default alongside their key.
+export const restoredAIModel = (provider: AIProvider, model: string) =>
+  provider === "openai" && model === "gpt-5-mini"
+    ? defaultAISettings(provider).model
+    : model;
 export function accountAISettings(
   key: AccountAIKey,
   accountId: number,

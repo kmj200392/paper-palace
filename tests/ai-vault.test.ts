@@ -53,6 +53,19 @@ test("each save uses a fresh salt and IV, even for the same key and password", a
   assert.equal(Buffer.from(second.iv, "base64").length, 12);
 });
 
+test("unlocking a legacy default-model vault restores Luna without changing the key", async () => {
+  const record = await encryptAIKey(
+    { ...settings, model: "gpt-5-mini" },
+    passphrase,
+  );
+  const original = JSON.stringify(record);
+  assert.deepEqual(await decryptAIKey(record, "openai", passphrase), {
+    ...settings,
+    model: "gpt-6-luna",
+  });
+  assert.equal(JSON.stringify(record), original);
+});
+
 test("wrong passphrase and modified ciphertext, IV or salt cannot unlock", async () => {
   const record = await saved();
   await assert.rejects(
