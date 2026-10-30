@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Maximize2, ArrowUpRight, Network } from "lucide-react";
 import type { Paper, Edge } from "@/lib/model";
-type Point = { x: number; y: number };
+import { zoomGraphAt, type GraphViewport, type Point } from "@/lib/graph-viewport";
 export function Graph({
   papers,
   edges,
@@ -12,9 +12,14 @@ export function Graph({
   edges: Edge[];
   onSelect: (id: string) => void;
 }) {
-  const [scale, setScale] = useState(1),
-    [positions, setPositions] = useState<Record<string, Point>>({}),
-    [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const [viewport, setViewport] = useState<GraphViewport>({
+      scale: 1,
+      pan: { x: 0, y: 0 },
+    }),
+    [positions, setPositions] = useState<Record<string, Point>>({});
+  const { scale, pan } = viewport;
+  const arrowId = useId();
+  const hasPapers = papers.length > 0;
   const canvas = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     id: string;
@@ -64,10 +69,12 @@ export function Graph({
         (element.clientHeight - 100) / (bottom - top + 150),
       ),
     );
-    setScale(nextScale);
-    setPan({
-      x: (440 - (left + right) / 2) * nextScale,
-      y: (310 - (top + bottom) / 2) * nextScale - 20,
+    setViewport({
+      scale: nextScale,
+      pan: {
+        x: (440 - (left + right) / 2) * nextScale,
+        y: (310 - (top + bottom) / 2) * nextScale - 20,
+      },
     });
   }, []);
   useEffect(() => {
@@ -78,6 +85,34 @@ export function Graph({
     fitView();
     return () => observer.disconnect();
   }, [papers.length, fitView]);
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const onWheel = (event: WheelEvent) => {
+      // Trackpad pinches arrive as Ctrl+wheel. React wheel listeners are
+      // passive, so use a native listener scoped to this board to stop page zoom.
+      event.preventDefault();
+      if (!event.deltaY) return;
+      const rect = element.getBoundingClientRect();
+      const unit =
+        event.deltaMode === 1
+          ? 16
+          : event.deltaMode === 2
+            ? element.clientHeight
+            : 1;
+      const delta = Math.max(-200, Math.min(200, event.deltaY * unit));
+      const factor = Math.exp(-delta * (event.ctrlKey ? 0.01 : 0.002));
+      const anchor = {
+        x:
+          event.clientX - rect.left - element.clientLeft - element.clientWidth / 2,
+        y:
+          event.clientY - rect.top - element.clientTop - element.clientHeight / 2,
+      };
+      setViewport((v) => zoomGraphAt(v, v.scale * factor, anchor));
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, [hasPapers]);
   if (!papers.length)
     return (
       <div className="empty-state graph-empty">
@@ -93,6 +128,8 @@ export function Graph({
     <div
       ref={canvas}
       className="graph-canvas"
+      role="region"
+      aria-label="지식 지도 · 휠 또는 핀치로 확대·축소"
       onPointerMove={(e) => {
         const d = drag.current;
         if (!d) return;
@@ -100,7 +137,10 @@ export function Graph({
           dy = (e.clientY - d.y) / scale;
         if (Math.abs(dx) + Math.abs(dy) > 4) d.hasMoved = true;
         if (d.id === "canvas")
-          setPan({ x: d.start.x + dx * scale, y: d.start.y + dy * scale });
+          setViewport((v) => ({
+            ...v,
+            pan: { x: d.start.x + dx * scale, y: d.start.y + dy * scale },
+          }));
         else
           setPositions((p) => ({
             ...p,
@@ -133,19 +173,45 @@ export function Graph({
         }}
       >
         <svg viewBox="0 0 880 620" className="graph-edges" aria-hidden="true">
+          <defs>
+            <marker
+              id={arrowId}
+              viewBox="0 0 12 12"
+              refX="6"
+              refY="6"
+              markerWidth="12"
+              markerHeight="12"
+              markerUnits="userSpaceOnUse"
+              orient="auto"
+            >
+              <path className="graph-arrow" d="M 1 1 L 11 6 L 1 11 L 4 6 Z" />
+            </marker>
+          </defs>
           {edges.map((e) => {
             const a = layout[e.source],
               b = layout[e.target];
             if (!a || !b) return null;
+            // Opposite directions bend to opposite sides. Split the curve so
+            // marker-mid stays between cards and follows source → target.
+            const distance = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+            const control = {
+              x: (a.x + b.x) / 2 - ((b.y - a.y) / distance) * 54,
+              y: (a.y + b.y) / 2 + ((b.x - a.x) / distance) * 54,
+            };
+            const middle = {
+              x: (a.x + 2 * control.x + b.x) / 4,
+              y: (a.y + 2 * control.y + b.y) / 4,
+            };
             return (
               <g key={e.id}>
                 <path
-                  d={`M ${a.x} ${a.y} Q ${(a.x + b.x) / 2 + 30} ${(a.y + b.y) / 2 - 45} ${b.x} ${b.y}`}
+                  d={`M ${a.x} ${a.y} Q ${(a.x + control.x) / 2} ${(a.y + control.y) / 2} ${middle.x} ${middle.y} Q ${(control.x + b.x) / 2} ${(control.y + b.y) / 2} ${b.x} ${b.y}`}
+                  markerMid={`url(#${arrowId})`}
                   strokeDasharray={e.origin === "suggested" ? "5 5" : undefined}
                 />
                 <text
-                  x={(a.x + b.x) / 2}
-                  y={(a.y + b.y) / 2 - 15}
+                  x={middle.x}
+                  y={middle.y - 13}
                   textAnchor="middle"
                 >
                   {e.label}
@@ -183,13 +249,16 @@ export function Graph({
         ))}
       </div>
       <div className="graph-legend">
-        <i /> 나의 논문 <span>노드를 누르면 읽기 · 드래그로 배치</span>
+        <i /> 나의 논문
+        <span>화살표는 연결 방향 · 드래그로 배치 · 휠/핀치로 확대</span>
       </div>
       <div className="graph-controls">
         <button
           className="icon-button"
           aria-label="축소"
-          onClick={() => setScale((s) => Math.max(0.15, s - 0.15))}
+          onClick={() =>
+            setViewport((v) => zoomGraphAt(v, v.scale - 0.15, { x: 0, y: 0 }))
+          }
         >
           <Minus size={17} />
         </button>
@@ -197,7 +266,9 @@ export function Graph({
         <button
           className="icon-button"
           aria-label="확대"
-          onClick={() => setScale((s) => Math.min(2, s + 0.15))}
+          onClick={() =>
+            setViewport((v) => zoomGraphAt(v, v.scale + 0.15, { x: 0, y: 0 }))
+          }
         >
           <Plus size={17} />
         </button>

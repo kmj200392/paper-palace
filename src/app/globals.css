@@ -2292,6 +2292,10 @@ summary::-webkit-details-marker {
   stroke-width: 1.3;
   fill: none;
 }
+.graph-edges .graph-arrow {
+  fill: #78925d;
+  stroke: none;
+}
 .graph-edges text {
   font-size: 10px;
   fill: #a1b58a;
