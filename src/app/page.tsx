@@ -10,6 +10,7 @@ import {
   MoveUpRight,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { MakerCredit } from "@/components/maker-credit";
 import { PalaceMap } from "@/components/palace-map";
 export default function Home() {
   return (
@@ -275,6 +276,7 @@ export default function Home() {
             GitHub <ArrowUpRight size={13} />
           </a>
           <Link href="/privacy/">개인정보 안내</Link>
+          <MakerCredit />
           <span>© 2026 Paper Palace</span>
         </div>
       </footer>

@@ -908,6 +908,7 @@ summary::-webkit-details-marker {
 .site-footer > div {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 22px;
   align-items: center;
   font-size: 10px;
@@ -917,6 +918,19 @@ summary::-webkit-details-marker {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.maker-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: #6d7b60;
+}
+.maker-credit:hover {
+  color: var(--ink);
+}
+.maker-credit svg {
+  flex-shrink: 0;
 }
 .legal {
   max-width: 760px;
@@ -1447,10 +1461,19 @@ summary::-webkit-details-marker {
   padding: 18px 35px;
   border-top: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
   justify-content: space-between;
   align-items: center;
   color: #9ba48f;
   font-size: 9px;
+}
+.workspace-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-left: auto;
 }
 .workspace-footer > span {
   font-family: var(--serif);

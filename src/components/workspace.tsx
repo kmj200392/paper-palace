@@ -29,6 +29,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { Brand } from "./brand";
+import { MakerCredit } from "./maker-credit";
 import { AIConnection } from "./ai-connection";
 import { useAccountAI } from "./use-account-ai";
 import { usePaperLabels } from "./use-paper-labels";
@@ -1086,7 +1087,10 @@ export default function Workspace() {
         </main>
         <footer className="workspace-footer">
           <span>Read. Connect. Remember.</span>
-          <a href="/privacy/">개인정보 안내</a>
+          <div className="workspace-footer-links">
+            <a href="/privacy/">개인정보 안내</a>
+            <MakerCredit />
+          </div>
         </footer>
       </div>
       <Dialog
