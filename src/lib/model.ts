@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { graphLabelSchema } from "./paper-labels";
 
 export const sectionKeys = [
   "motivation",
@@ -71,6 +72,7 @@ export const paperSchema = z.object({
   id: z.string().max(80),
   arxivId: z.string().max(80),
   title: z.string().min(1).max(1500),
+  graphLabel: graphLabelSchema.optional(),
   authors: z.array(z.string().max(200)).max(200),
   abstract: z.string().max(15000),
   published: z.string().max(40),

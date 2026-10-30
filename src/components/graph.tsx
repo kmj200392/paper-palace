@@ -1,11 +1,21 @@
 "use client";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  Minus, Plus, Expand, Minimize2, Scan, ArrowUpRight, Network,
-} from "lucide-react";
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Minus, Plus, Expand, Minimize2, Scan, Network } from "lucide-react";
 import type { Paper, Edge } from "@/lib/model";
-import { zoomGraphAt, type GraphViewport, type Point } from "@/lib/graph-viewport";
+import {
+  zoomGraphAt,
+  type GraphViewport,
+  type Point,
+} from "@/lib/graph-viewport";
 import { directedEdge } from "@/lib/graph-edge";
+import { graphPaperLabel } from "@/lib/paper-labels";
 export function Graph({
   papers,
   edges,
@@ -168,9 +178,15 @@ export function Graph({
       const factor = Math.exp(-delta * (event.ctrlKey ? 0.01 : 0.002));
       const anchor = {
         x:
-          event.clientX - rect.left - element.clientLeft - element.clientWidth / 2,
+          event.clientX -
+          rect.left -
+          element.clientLeft -
+          element.clientWidth / 2,
         y:
-          event.clientY - rect.top - element.clientTop - element.clientHeight / 2,
+          event.clientY -
+          rect.top -
+          element.clientTop -
+          element.clientHeight / 2,
       };
       setViewport((v) => zoomGraphAt(v, v.scale * factor, anchor));
     };
@@ -268,7 +284,9 @@ export function Graph({
                   <path
                     d={curve.path}
                     markerEnd={`url(#${arrowId})`}
-                    strokeDasharray={e.origin === "suggested" ? "5 5" : undefined}
+                    strokeDasharray={
+                      e.origin === "suggested" ? "5 5" : undefined
+                    }
                   />
                   <text
                     x={curve.label.x}
@@ -289,6 +307,8 @@ export function Graph({
                 else nodeElements.current.delete(p.id);
               }}
               data-paper-id={p.id}
+              title={`${graphPaperLabel(p)}\n${p.title}`}
+              aria-label={`${graphPaperLabel(p)} · ${p.title} 읽기`}
               className={`graph-node ${p.status === "read" ? "is-read" : ""}`}
               style={{ left: layout[p.id].x, top: layout[p.id].y }}
               onPointerDown={(e) => {
@@ -306,11 +326,7 @@ export function Graph({
                 if (e.key === "Enter" || e.key === " ") onSelect(p.id);
               }}
             >
-              <span>{p.tags[0] || p.published.slice(0, 4) || "PAPER"}</span>
-              <strong>{p.title}</strong>
-              <small>
-                {p.authors[0] || "arXiv"} <ArrowUpRight size={12} />
-              </small>
+              <strong>{graphPaperLabel(p)}</strong>
             </button>
           ))}
         </div>
@@ -322,7 +338,9 @@ export function Graph({
             aria-pressed={expanded}
             onClick={() => {
               if (!expanded)
-                setPlaceholderHeight(canvas.current?.getBoundingClientRect().height || 590);
+                setPlaceholderHeight(
+                  canvas.current?.getBoundingClientRect().height || 590,
+                );
               setExpanded((value) => !value);
             }}
           >

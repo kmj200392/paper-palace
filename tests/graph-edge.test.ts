@@ -15,11 +15,20 @@ function onBoundary(p: Point, node: GraphNodeBounds) {
 test("arrows terminate at measured target boundaries in every direction", () => {
   const source = { x: 440, y: 310, width: 187, height: 120.125 };
   for (const [dx, dy] of [
-    [350, 0], [-350, 0], [0, 300], [0, -300],
-    [250, 200], [-250, 200], [250, -200], [-250, -200],
+    [350, 0],
+    [-350, 0],
+    [0, 300],
+    [0, -300],
+    [250, 200],
+    [-250, 200],
+    [250, -200],
+    [-250, -200],
   ]) {
     for (const [width, height] of [
-      [187, 142.5], [150, 105], [240, 180],
+      [187, 142.5],
+      [150, 105],
+      [240, 180],
+      [88, 44],
     ]) {
       const target = { x: source.x + dx, y: source.y + dy, width, height };
       const curve = directedEdge(source, target);

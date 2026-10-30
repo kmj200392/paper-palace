@@ -18,6 +18,8 @@ import {
   verifyAnalysis,
 } from "../src/lib/model";
 import { analysisInstructions } from "./analysis-prompt";
+import { paperLabelInstructions } from "./paper-label-prompt";
+import { paperLabelsSchema, labelBatchSize } from "../src/lib/paper-labels";
 import {
   randomToken,
   challenge,
@@ -149,13 +151,14 @@ async function modelJSON(
 ) {
   const openai = input.provider === "openai";
   const detailed = schemaName === "paper_analysis";
+  const naming = schemaName === "paper_labels";
   const requestBody = openai
     ? {
         model: input.model,
         store: false,
         instructions,
         input: prompt,
-        max_output_tokens: detailed ? 24000 : 12000,
+        max_output_tokens: naming ? 4000 : detailed ? 24000 : 12000,
         text: {
           ...(detailed && input.model === "gpt-6-luna"
             ? { verbosity: "high" }
@@ -170,7 +173,7 @@ async function modelJSON(
       }
     : {
         model: input.model,
-        max_tokens: detailed ? 16000 : 10000,
+        max_tokens: naming ? 2000 : detailed ? 16000 : 10000,
         system: instructions,
         messages: [{ role: "user", content: prompt }],
         output_config: {
@@ -301,6 +304,47 @@ async function analyze(req: Request, env: Env) {
     analysis: verifyAnalysis(parsed.data, input.blocks),
     usage: result.usage,
   });
+}
+async function namePapers(req: Request, env: Env) {
+  const input = z
+    .object({
+      ...aiRequestFields,
+      papers: z
+        .array(
+          z.object({
+            id: z.string().min(1).max(80),
+            title: z.string().min(1).max(1500),
+            abstract: z.string().max(4000),
+          }),
+        )
+        .min(1)
+        .max(labelBatchSize),
+    })
+    .parse(await body(req, 500000));
+  const ids = new Set(input.papers.map((p) => p.id));
+  if (ids.size !== input.papers.length)
+    throw new HttpError(400, "중복된 논문이 포함되어 있어요.");
+  const schema = z.toJSONSchema(paperLabelsSchema, { target: "draft-7" });
+  delete schema.$schema;
+  const result = await modelJSON(
+    await resolveAIKey(req, env, input),
+    schema,
+    JSON.stringify(input.papers),
+    paperLabelInstructions,
+    "paper_labels",
+  );
+  const parsed = paperLabelsSchema.safeParse(result.value);
+  if (
+    !parsed.success ||
+    parsed.data.labels.length !== ids.size ||
+    new Set(parsed.data.labels.map((p) => p.id)).size !== ids.size ||
+    parsed.data.labels.some((p) => !ids.has(p.id))
+  )
+    throw new HttpError(
+      502,
+      "논문의 짧은 이름을 확인하지 못했어요. 다시 시도해 주세요.",
+    );
+  return json(parsed.data);
 }
 const relationSchema = z.object({
   relations: z
@@ -707,6 +751,8 @@ export default {
       }
       if (path === "/api/relate" && req.method === "POST")
         return await relate(req, env);
+      if (path === "/api/paper-labels" && req.method === "POST")
+        return await namePapers(req, env);
       if (path === "/api/analyze" && req.method === "POST")
         return await analyze(req, env);
       return json({ error: "경로를 찾을 수 없어요." }, 404);

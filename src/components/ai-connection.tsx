@@ -217,6 +217,10 @@ export function AIConnection({
         </label>
       </div>
       <label htmlFor="api-key">API 키</label>
+      <p className="form-hint">
+        AI를 연결하면 논문 제목·초록으로 그래프의 짧은 이름을 자동으로 만들어요.
+        기존 논문에도 적용되며, 선택한 API 계정의 사용료가 발생해요.
+      </p>
       <div className="key-input">
         <input
           id="api-key"

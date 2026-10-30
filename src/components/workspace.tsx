@@ -29,6 +29,7 @@ import {
 import { Brand } from "./brand";
 import { AIConnection } from "./ai-connection";
 import { useAccountAI } from "./use-account-ai";
+import { usePaperLabels } from "./use-paper-labels";
 import { defaultAISettings, hasAIConnection } from "@/lib/ai-settings";
 import { Dialog } from "./dialog";
 import { Graph } from "./graph";
@@ -102,6 +103,13 @@ export default function Workspace() {
     account,
     ready,
     latest,
+    update: setLibrary,
+  });
+  const paperLabels = usePaperLabels({
+    account,
+    ai,
+    library,
+    enabled: ready && !settingsOpen,
     update: setLibrary,
   });
   const [connectingFolder, setConnectingFolder] = useState(false);
@@ -513,7 +521,7 @@ export default function Workspace() {
   const papers = library.papers.filter(
     (p) =>
       (filter === "all" || p.status === filter) &&
-      `${p.title} ${p.authors.join(" ")} ${p.tags.join(" ")} ${p.notes}`
+      `${p.title} ${p.graphLabel || ""} ${p.authors.join(" ")} ${p.tags.join(" ")} ${p.notes}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -900,6 +908,28 @@ export default function Workspace() {
                     edges={library.edges}
                     onSelect={setSelected}
                   />
+                  {(paperLabels.busy || paperLabels.error) && (
+                    <div className="graph-label-status" role="status">
+                      {paperLabels.busy ? (
+                        <>
+                          <LoaderCircle size={14} className="spin" /> 짧은 이름
+                          만드는 중…
+                        </>
+                      ) : (
+                        <>
+                          <span>
+                            {paperLabels.error} 임시 이름으로 표시하고 있어요.
+                          </span>
+                          <button
+                            className="text-button"
+                            onClick={paperLabels.retry}
+                          >
+                            이름 다시 만들기
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <div className="connections-detail">
                     <div>
                       <h2>
@@ -1048,8 +1078,8 @@ export default function Workspace() {
             </p>
           )}
           <p className="form-hint">
-            논문 정보만 먼저 가져와요. AI 분석은 원문을 연 뒤 직접 시작할 수
-            있어요.
+            AI가 연결되어 있으면 그래프의 짧은 이름을 자동으로 만들어요. 상세
+            해설은 원문을 연 뒤 직접 시작할 수 있어요.
           </p>
           <button
             className="button primary full"

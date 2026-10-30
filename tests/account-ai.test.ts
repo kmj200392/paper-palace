@@ -75,6 +75,14 @@ const relation = {
     method: "Test",
   })),
 };
+const labels = {
+  provider: "openai",
+  model: "test-model",
+  accountId: 42,
+  papers: [
+    { id: "a", title: "Attention Is All You Need", abstract: "Self-attention" },
+  ],
+};
 
 test("account key is encrypted in a bounded host-only HttpOnly cookie and never returned to JavaScript", async () => {
   const auth = await session();
@@ -242,6 +250,7 @@ test("saved-key analysis and graph calls fail closed after logout, expiry or acc
     for (const [path, payload] of [
       ["/api/analyze", analyze],
       ["/api/relate", relation],
+      ["/api/paper-labels", labels],
     ] as const) {
       const r = await worker.fetch(
         request(path, cookies, "POST", { ...payload, apiKey: testKey }),
@@ -303,7 +312,9 @@ test("legacy saved keys restore Luna for analysis and graph without exposing pla
                 ],
               },
             }
-          : { relations: [] };
+          : body.text.format.name === "paper_labels"
+            ? { labels: [{ id: "a", label: "Attention" }] }
+            : { relations: [] };
       return Response.json({
         status: "completed",
         output: [
@@ -318,6 +329,7 @@ test("legacy saved keys restore Luna for analysis and graph without exposing pla
   for (const [path, payload] of [
     ["/api/analyze", analyze],
     ["/api/relate", relation],
+    ["/api/paper-labels", labels],
   ] as const) {
     const r = await worker.fetch(
       request(path, cookies, "POST", { ...payload, ...restored }),
@@ -326,7 +338,7 @@ test("legacy saved keys restore Luna for analysis and graph without exposing pla
     assert.equal(r.status, 200);
     assert(!(await r.text()).includes(testKey));
   }
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
   assert(
     hasAIConnection({
       provider: "openai",
