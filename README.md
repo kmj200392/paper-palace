@@ -8,11 +8,12 @@ Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries,
 
 ## Features
 
-- arXiv metadata and version-aware HTML/PDF reading; original PDF alongside extracted text.
+- arXiv metadata and version-aware reading, opening in the original PDF by default. The PDF.js viewer preserves figures/equations, offers page navigation, zoom/fit, text search, and selectable text. Selected text can be appended to existing notes with its page number (up to 2,000 characters per selection on one page). Extracted text remains available as a fallback.
+- The workspace sidebar can be collapsed or expanded from the header; this browser remembers the preference across refreshes.
 - Motivation, core concept, method, experimental setup and results, generated with your OpenAI or Anthropic API key.
 - Detailed explanations use titled paragraphs to explain mechanisms, experimental conditions, comparisons and limitations with verified source links. Older summaries stay readable and can be replaced explicitly with **상세 해설로 다시 정리**; notes remain intact. New analysis requests allow up to 24,000 output tokens on OpenAI or 16,000 on Anthropic, with one provider call and no automatic paid retry.
 - OpenAI defaults to `gpt-6-luna` for paper analysis and graph suggestions. Saved connections using the former `gpt-5-mini` default restore with Luna; other saved model IDs are preserved.
-- Verified short source quotations link back to the original text. Unsupported citations are removed; generated claims still require human review.
+- Verified short source quotations are found and highlighted in the PDF, tolerating line breaks, hyphenation and typographic ligatures. If the full phrase cannot be matched, the reader explicitly offers the verified extracted-text block instead. Original extraction IDs/hashes and existing summaries are preserved. Unsupported citations are removed; generated claims still require human review.
 - Local folder autosave plus IndexedDB cache, tags, reading status, notes, JSON import/export, draggable graph and directed relationships. AI can propose connections between analyzed papers; proposals stay dashed until you review and adopt them.
 - Compact graph nodes show a saved 1–2 word name (for example MemRefine, Attention or A-Mem). When AI is connected and Settings is closed, missing names for new and existing papers are generated automatically from titles and abstracts (each abstract is limited to 4,000 characters), in batches of at most 20. This uses the selected provider/model and the user's API credits; names are cached in `graphLabel` and travel with folder/GitHub/JSON data. Names already saved are preserved. Without AI, a title-derived placeholder appears; failed generation pauses until **이름 다시 만들기** or a new AI connection. Hover a node to see its full title, or use its accessible name with a screen reader; clicking opens the paper.
 - GitHub App OAuth (PKCE/state, encrypted HttpOnly sessions) and user-selected private repository synchronization. No central user database.
@@ -59,7 +60,7 @@ Encryption protects stored key material at rest, not a compromised browser or co
 
 Private repositories store `paper-palace/library.json`. Full paper sources stay in the browser cache. Sync merges items by modification timestamp and honors deletion tombstones. Git history retains prior revisions. Export/import validates the schema before merging. Browser caches are separated by GitHub account; explicitly starting GitHub login carries the current tab’s library and folder connection through sign-in.
 
-Current limits: 3MB library sync, 1000 papers per library, 120 PDF pages, 220000 extracted text characters per AI analysis, up to 40 paper summaries per AI relationship request, 25MB PDFs when upstream supplies length. Figure pixels are not analyzed; complex tables and math may lose layout during extraction. PDF-only citations link to extracted blocks and expose page numbers. Scanned PDFs need OCR and are not supported. Users choose a model supporting structured outputs and pay their provider directly.
+Current limits: 3MB library sync, 1000 papers per library, 120 PDF pages, 220000 extracted text characters per AI analysis, up to 40 paper summaries per AI relationship request, 25MB PDFs when upstream supplies length. Figure pixels are displayed but are not analyzed by AI; complex tables and math may lose layout in the extracted text used for analysis. Citation matching requires the whole normalized phrase and cannot match every HTML formula to PDF glyphs. Scanned PDFs can be viewed, but text selection/search and AI analysis require extractable text (no OCR). Users choose a model supporting structured outputs and pay their provider directly.
 
 ## Verification
 

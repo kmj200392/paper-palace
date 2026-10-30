@@ -26,6 +26,8 @@ import {
 } from "@/lib/model";
 import { getSource } from "@/lib/source";
 import { api } from "@/lib/api";
+import { PdfReader, type PdfTarget } from "./pdf-reader";
+import { appendPdfQuote } from "@/lib/pdf-citations";
 import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
 export type { AISettings } from "@/lib/ai-vault";
 export function Reader({
@@ -52,9 +54,9 @@ export function Reader({
     [analyzing, setAnalyzing] = useState(false),
     [active, setActive] = useState(""),
     [tab, setTab] = useState<"summary" | "notes">("summary"),
-    [mobile, setMobile] = useState<"source" | "summary">("summary"),
-    [pdf, setPdf] = useState(false),
-    [pdfPage, setPdfPage] = useState(1);
+    [mobile, setMobile] = useState<"source" | "summary">("source"),
+    [pdf, setPdf] = useState(true),
+    [pdfTarget, setPdfTarget] = useState<PdfTarget | null>(null);
   const sourcePane = useRef<HTMLDivElement>(null),
     analysisRequest = useRef(false);
   useEffect(() => {
@@ -126,18 +128,37 @@ export function Reader({
   };
   const jump = (c: Citation) => {
     if (!source || !citationMatches(c, source.blocks)) return;
-    setPdf(false);
+    setPdf(true);
     setMobile("source");
     setActive(c.blockId);
     const block = source.blocks.find((b) => b.id === c.blockId);
-    if (block?.page) setPdfPage(block.page);
+    setPdfTarget((previous) => ({
+      quote: c.quote,
+      page: block?.page,
+      request: (previous?.request || 0) + 1,
+    }));
+  };
+  const showText = () => {
+    setPdf(false);
+    setMobile("source");
     requestAnimationFrame(() =>
       requestAnimationFrame(() =>
         document
-          .getElementById(`source-${c.blockId}`)
+          .getElementById(`source-${active}`)
           ?.scrollIntoView({ behavior: "smooth", block: "center" }),
       ),
     );
+  };
+  const quoteToNotes = (text: string, page: number) => {
+    const notes = appendPdfQuote(paper.notes, text, page);
+    if (notes === null) {
+      notify("메모의 저장 한도(3만 자)를 확인해 주세요.");
+      return false;
+    }
+    update({ notes });
+    setTab("notes");
+    notify(`PDF ${page}쪽의 선택한 문장을 메모에 추가했어요.`);
+    return true;
   };
   const verified =
     source && paper.analysis
@@ -212,49 +233,34 @@ export function Reader({
             </span>
             <div className="segmented">
               <button
-                className={!pdf ? "active" : ""}
-                onClick={() => setPdf(false)}
-              >
-                텍스트
-              </button>
-              <button
                 className={pdf ? "active" : ""}
                 onClick={() => setPdf(true)}
+                aria-pressed={pdf}
               >
-                PDF
+                원본 PDF
+              </button>
+              <button
+                className={!pdf ? "active" : ""}
+                onClick={showText}
+                aria-pressed={!pdf}
+              >
+                추출 텍스트
               </button>
             </div>
           </div>
-          <div ref={sourcePane} className="source-scroll">
+          <div
+            ref={sourcePane}
+            className={`source-scroll${pdf ? " is-pdf" : ""}`}
+          >
             {pdf ? (
-              <>
-                <div className="pdf-page-control">
-                  <label>
-                    페이지{" "}
-                    <input
-                      type="number"
-                      min="1"
-                      value={pdfPage}
-                      onChange={(e) =>
-                        setPdfPage(Math.max(1, Number(e.target.value) || 1))
-                      }
-                    />
-                  </label>
-                  <a
-                    href={`https://arxiv.org/pdf/${paper.arxivId}#page=${pdfPage}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    새 창에서 보기 ↗
-                  </a>
-                </div>
-                <iframe
-                  key={pdfPage}
-                  title={`${paper.title} PDF ${pdfPage}쪽`}
-                  src={`/api/source?id=${encodeURIComponent(paper.arxivId)}&format=pdf#page=${pdfPage}&view=FitH`}
-                  className="pdf-frame"
-                />
-              </>
+              <PdfReader
+                arxivId={paper.arxivId}
+                title={paper.title}
+                target={pdfTarget}
+                visible={mobile === "source"}
+                onQuote={quoteToNotes}
+                onTextFallback={showText}
+              />
             ) : (
               <article className="paper-document">
                 <p className="tiny-label">
@@ -302,7 +308,10 @@ export function Reader({
                         <button
                           className="page-marker"
                           onClick={() => {
-                            setPdfPage(b.page!);
+                            setPdfTarget((previous) => ({
+                              page: b.page!,
+                              request: (previous?.request || 0) + 1,
+                            }));
                             setPdf(true);
                           }}
                         >
@@ -476,7 +485,8 @@ export function Reader({
                       </p>
                     )}
                     <div className="summary-instruction">
-                      <Quote size={15} /> 근거 문구를 누르면 원문으로 이동해요.
+                      <Quote size={15} /> 근거 문구를 누르면 원본 PDF에서 찾아
+                      표시해요.
                     </div>
                     {sectionKeys.map((key, i) => (
                       <section className="analysis-section" key={key}>

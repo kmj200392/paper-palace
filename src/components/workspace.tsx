@@ -25,6 +25,8 @@ import {
   X,
   Link2,
   SlidersHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Brand } from "./brand";
 import { AIConnection } from "./ai-connection";
@@ -56,6 +58,25 @@ import { type FolderConnection } from "@/lib/folder";
 import { importPaper } from "@/lib/source";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(
+        localStorage.getItem("paper-palace:sidebar-collapsed") === "true",
+      );
+    } catch {
+      /* Preferences can be unavailable in private mode. */
+    }
+  }, []);
+  const toggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem("paper-palace:sidebar-collapsed", String(next));
+    } catch {
+      /* Keep the in-memory preference. */
+    }
+  };
   const [suggesting, setSuggesting] = useState(false);
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
@@ -527,8 +548,12 @@ export default function Workspace() {
   );
   const paper = library.papers.find((p) => p.id === selected);
   return (
-    <div className="workspace">
-      <aside className="sidebar">
+    <div className={`workspace${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+      <aside
+        id="workspace-sidebar"
+        className="sidebar"
+        hidden={sidebarCollapsed}
+      >
         <Brand compact />
         <span className="sidebar-label">MY PALACE</span>
         <nav aria-label="연구 공간 메뉴">
@@ -587,13 +612,31 @@ export default function Workspace() {
       </aside>
       <div className="workspace-main">
         <header className="workspace-header">
-          <span>
-            {selected
-              ? "READING ROOM"
-              : view === "graph"
-                ? "YOUR PERSONAL RESEARCH GRAPH"
-                : "YOUR PERSONAL LIBRARY"}
-          </span>
+          <div className="workspace-context">
+            <button
+              className="icon-button sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-controls="workspace-sidebar"
+              aria-expanded={!sidebarCollapsed}
+              aria-label={
+                sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"
+              }
+              title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen size={19} />
+              ) : (
+                <PanelLeftClose size={19} />
+              )}
+            </button>
+            <span className="workspace-context-label">
+              {selected
+                ? "READING ROOM"
+                : view === "graph"
+                  ? "YOUR PERSONAL RESEARCH GRAPH"
+                  : "YOUR PERSONAL LIBRARY"}
+            </span>
+          </div>
           <div>
             <button
               className={`key-status ${hasAIConnection(ai) ? "connected" : ""}`}
