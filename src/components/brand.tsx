@@ -2,9 +2,9 @@ import Link from "next/link";
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link
-      href="/"
+      href="/app/"
       className={`brand ${compact ? "compact" : ""}`}
-      aria-label="Paper Palace 홈"
+      aria-label="Paper Palace 연구 공간"
     >
       <span className="brand-mark" aria-hidden="true">
         <svg viewBox="240 200 850 750" focusable="false">
