@@ -297,8 +297,7 @@ export function PaperDiscovery({
                     rel="noopener noreferrer"
                     aria-label={`${rec.paper.title} arXiv 소개 페이지`}
                   >
-                    {arxivUrl.replace("https://", "")}{" "}
-                    <ArrowUpRight size={14} aria-hidden="true" />
+                    {arxivUrl} <ArrowUpRight size={14} aria-hidden="true" />
                   </a>
                   <RecommendationAffiliations
                     paper={rec.paper}

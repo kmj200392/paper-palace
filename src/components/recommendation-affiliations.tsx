@@ -1,6 +1,6 @@
 import { ArrowUpRight, LoaderCircle } from "lucide-react";
 import type { AuthorDetails } from "@/lib/author-affiliations";
-import type { Candidate } from "@/lib/recommendations";
+import { canonicalPaperId, type Candidate } from "@/lib/recommendations";
 
 export function RecommendationAffiliations({
   paper,
@@ -76,11 +76,11 @@ export function RecommendationAffiliations({
       {!loading && (
         <a
           className="recommendation-affiliation-source"
-          href={`https://arxiv.org/${details?.format === "html" ? "html" : "pdf"}/${paper.arxivId}${details?.format === "html" ? "" : "#page=1"}`}
+          href={`https://arxiv.org/abs/${canonicalPaperId(paper.arxivId)}`}
           target="_blank"
           rel="noopener noreferrer"
         >
-          원문에서 소속 확인 <ArrowUpRight size={12} aria-hidden="true" />
+          arXiv 논문 소개 <ArrowUpRight size={12} aria-hidden="true" />
         </a>
       )}
     </section>
