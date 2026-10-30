@@ -300,11 +300,19 @@ export function PaperDiscovery({
                     {arxivUrl} <ArrowUpRight size={14} aria-hidden="true" />
                   </a>
                   <RecommendationAffiliations
-                    paper={rec.paper}
                     details={authors[rec.paper.arxivId]}
                     loading={authorBusy}
                     failed={authorFailed}
                   />
+                  <a
+                    className="button secondary small"
+                    href={arxivUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${rec.paper.title} arXiv 보기`}
+                  >
+                    arXiv 보기 <ArrowUpRight size={14} aria-hidden="true" />
+                  </a>
                   <div className="recommendation-reason">
                     <h4>왜 지금 읽으면 좋을까</h4>
                     <p>{rec.reason}</p>

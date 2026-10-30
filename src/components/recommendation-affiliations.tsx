@@ -1,19 +1,16 @@
-import { ArrowUpRight, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import type { AuthorDetails } from "@/lib/author-affiliations";
-import { canonicalPaperId, type Candidate } from "@/lib/recommendations";
 
 export function RecommendationAffiliations({
-  paper,
   details,
   loading,
   failed,
 }: {
-  paper: Candidate;
   details?: AuthorDetails;
   loading: boolean;
   failed: boolean;
 }) {
-  const affiliations = new Map<string, { name: string; evidence: string[] }>();
+  const affiliations = new Map<string, string>();
   for (const person of [
     ...(details?.firstAuthors || []),
     ...(details?.correspondingAuthors || []),
@@ -22,15 +19,10 @@ export function RecommendationAffiliations({
       const name = affiliation.name.trim().replace(/\s+/g, " ");
       const key = name.normalize("NFKC").toLowerCase();
       if (!key) continue;
-      const existing = affiliations.get(key);
-      if (existing) existing.evidence.push(affiliation.evidence);
-      else affiliations.set(key, { name, evidence: [affiliation.evidence] });
+      if (!affiliations.has(key)) affiliations.set(key, name);
     }
   }
   const institutions = [...affiliations.values()];
-  const evidence = [
-    ...new Set(institutions.flatMap((a) => a.evidence).filter(Boolean)),
-  ];
   return (
     <section
       className="recommendation-affiliations"
@@ -47,7 +39,7 @@ export function RecommendationAffiliations({
       </div>
       {institutions.length > 0 ? (
         <ul className="recommendation-affiliation-list">
-          {institutions.map(({ name }) => (
+          {institutions.map((name) => (
             <li key={name}>{name}</li>
           ))}
         </ul>
@@ -64,24 +56,6 @@ export function RecommendationAffiliations({
         <p className="recommendation-affiliation-caption">
           논문 작성 당시 소속 · 원문에서 확인된 기관
         </p>
-      )}
-      {evidence.length > 0 && (
-        <details className="recommendation-affiliation-evidence">
-          <summary>소속 근거 보기</summary>
-          {evidence.map((quote, i) => (
-            <blockquote key={i}>{quote}</blockquote>
-          ))}
-        </details>
-      )}
-      {!loading && (
-        <a
-          className="recommendation-affiliation-source"
-          href={`https://arxiv.org/abs/${canonicalPaperId(paper.arxivId)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          arXiv 논문 소개 <ArrowUpRight size={12} aria-hidden="true" />
-        </a>
       )}
     </section>
   );

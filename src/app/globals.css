@@ -4333,7 +4333,7 @@ summary::-webkit-details-marker {
 }
 
 .recommendation-affiliations {
-  margin: 18px 0 24px;
+  margin: 18px 0 12px;
   padding: 18px 20px;
   background: var(--sage);
   border: 1px solid var(--line);
@@ -4388,33 +4388,6 @@ summary::-webkit-details-marker {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.7;
-}
-.recommendation-affiliation-evidence {
-  margin-top: 12px;
-  font-size: 11px;
-}
-.recommendation-affiliation-evidence summary {
-  cursor: pointer;
-  color: var(--green);
-}
-.recommendation-affiliation-evidence blockquote {
-  margin: 10px 0;
-  padding-left: 12px;
-  border-left: 2px solid var(--line);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--muted);
-  line-height: 1.7;
-  max-height: 200px;
-  overflow-y: auto;
-}
-.recommendation-affiliation-source {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  font-size: 11px;
-  color: var(--green);
-  margin-top: 10px;
 }
 @media (max-width: 600px) {
   .recommendation-affiliations {
