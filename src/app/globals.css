@@ -4164,9 +4164,20 @@ summary::-webkit-details-marker {
   margin: 14px 0 10px;
   overflow-wrap: anywhere;
 }
-.recommendation-authors {
-  font-size: 11px;
-  color: #8c9681;
+.recommendation-arxiv {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--green);
+  overflow-wrap: anywhere;
+}
+.recommendation-arxiv svg {
+  flex-shrink: 0;
+}
+.recommendation-arxiv:hover {
+  text-decoration: underline;
 }
 .recommendation-reason {
   margin-top: 24px;
@@ -4321,7 +4332,7 @@ summary::-webkit-details-marker {
   }
 }
 
-.recommendation-author-info {
+.recommendation-affiliations {
   margin: 18px 0 24px;
   padding: 18px 20px;
   background: var(--sage);
@@ -4329,7 +4340,7 @@ summary::-webkit-details-marker {
   border-radius: 6px;
   font-size: 13px;
 }
-.recommendation-author-heading {
+.recommendation-affiliation-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4337,80 +4348,56 @@ summary::-webkit-details-marker {
   gap: 8px;
   margin-bottom: 13px;
 }
-.recommendation-author-heading h4 {
+.recommendation-affiliation-heading h4 {
   margin: 0;
   font-size: 12px;
   color: var(--green);
 }
-.recommendation-author-heading > span {
+.recommendation-affiliation-heading > span {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: var(--muted);
   font-size: 11px;
 }
-.recommendation-author-info dl {
+.recommendation-affiliation-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
   margin: 0;
-  display: grid;
-  gap: 13px;
 }
-.recommendation-author-info dl > div {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 12px;
-}
-.recommendation-author-info dt {
-  color: var(--muted);
-  font-size: 11px;
-  padding-top: 3px;
-}
-.recommendation-author-info dd {
-  margin: 0;
-  min-width: 0;
-}
-.recommendation-author-person + .recommendation-author-person {
-  margin-top: 10px;
-}
-.recommendation-author-person strong,
-.recommendation-author-person > span {
-  display: block;
-  overflow-wrap: anywhere;
-  line-height: 1.6;
-}
-.recommendation-author-person strong {
-  font-size: 13px;
-  font-weight: 500;
-}
-.recommendation-author-person > span {
+.recommendation-affiliation-list li {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper);
   color: var(--green);
   font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
-.recommendation-author-person small {
-  display: inline-block;
-  margin-left: 7px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 400;
-}
-.recommendation-author-unknown {
+.recommendation-affiliation-unknown {
   color: var(--muted);
   font-size: 12px;
 }
-.recommendation-author-caption {
+.recommendation-affiliation-caption {
   margin: 13px 0 0;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.7;
 }
-.recommendation-author-evidence {
+.recommendation-affiliation-evidence {
   margin-top: 12px;
   font-size: 11px;
 }
-.recommendation-author-evidence summary {
+.recommendation-affiliation-evidence summary {
   cursor: pointer;
   color: var(--green);
 }
-.recommendation-author-evidence blockquote {
+.recommendation-affiliation-evidence blockquote {
   margin: 10px 0;
   padding-left: 12px;
   border-left: 2px solid var(--line);
@@ -4421,7 +4408,7 @@ summary::-webkit-details-marker {
   max-height: 200px;
   overflow-y: auto;
 }
-.recommendation-author-source {
+.recommendation-affiliation-source {
   display: inline-flex;
   gap: 4px;
   align-items: center;
@@ -4430,12 +4417,8 @@ summary::-webkit-details-marker {
   margin-top: 10px;
 }
 @media (max-width: 600px) {
-  .recommendation-author-info {
+  .recommendation-affiliations {
     padding: 14px;
-  }
-  .recommendation-author-info dl > div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
   }
 }
 

@@ -17,7 +17,7 @@ import {
   loadAuthorSources,
   type AuthorDetails,
 } from "@/lib/author-affiliations";
-import { RecommendationAuthors } from "./recommendation-authors";
+import { RecommendationAffiliations } from "./recommendation-affiliations";
 import {
   canonicalPaperId,
   discoveryInput,
@@ -166,7 +166,7 @@ export function PaperDiscovery({
             )}
             {busy
               ? authorBusy
-                ? "저자·소속 확인 중…"
+                ? "소속 확인 중…"
                 : "연구 지도에서 찾는 중…"
               : hasAIConnection(settings)
                 ? "논문 추천받기"
@@ -175,7 +175,7 @@ export function PaperDiscovery({
         </div>
         <p className="discovery-cost">
           {hasAIConnection(settings) ? settings.model : "연결한 AI"} · 검색당 AI
-          최대 3회 호출(저자·소속 확인 포함). 내 API 크레딧을 사용해요.
+          최대 3회 호출(소속 확인 포함). 내 API 크레딧을 사용해요.
         </p>
       </form>
       <p className="discovery-scope">
@@ -195,7 +195,7 @@ export function PaperDiscovery({
           <LoaderCircle size={20} className="spin" />
           <span>
             {authorBusy
-              ? "추천 논문의 원문에서 주요 저자와 소속을 확인하고 있어요."
+              ? "추천 논문의 원문에서 연구기관 소속을 확인하고 있어요."
               : "관심 분야를 해석하고 arXiv 검색 결과를 그래프와 비교하고 있어요."}
             <small>
               잠시 걸릴 수 있어요. 검색 버튼을 다시 누를 필요는 없어요.
@@ -266,6 +266,7 @@ export function PaperDiscovery({
                   canonicalPaperId(p.arxivId) ===
                   canonicalPaperId(rec.paper.arxivId),
               );
+              const arxivUrl = `https://arxiv.org/abs/${canonicalPaperId(rec.paper.arxivId)}`;
               const related = rec.connections.filter((c) =>
                 library.papers.some((p) => p.id === c.paperId),
               );
@@ -279,29 +280,27 @@ export function PaperDiscovery({
                       {rec.paper.published.slice(0, 4)} ·{" "}
                       {rec.paper.categories.slice(0, 2).join(" / ")}
                     </span>
-                    <a
-                      href={`https://arxiv.org/abs/${rec.paper.arxivId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${rec.paper.title} arXiv에서 열기`}
-                    >
-                      arXiv <ArrowUpRight size={14} />
-                    </a>
                   </div>
                   <h3>
                     <a
-                      href={`https://arxiv.org/abs/${rec.paper.arxivId}`}
+                      href={arxivUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {rec.paper.title}
                     </a>
                   </h3>
-                  <p className="recommendation-authors">
-                    {rec.paper.authors.slice(0, 3).join(", ")}
-                    {rec.paper.authors.length > 3 ? " 외" : ""}
-                  </p>
-                  <RecommendationAuthors
+                  <a
+                    className="recommendation-arxiv"
+                    href={arxivUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${rec.paper.title} arXiv 소개 페이지`}
+                  >
+                    {arxivUrl.replace("https://", "")}{" "}
+                    <ArrowUpRight size={14} aria-hidden="true" />
+                  </a>
+                  <RecommendationAffiliations
                     paper={rec.paper}
                     details={authors[rec.paper.arxivId]}
                     loading={authorBusy}
