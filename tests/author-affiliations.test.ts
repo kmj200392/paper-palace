@@ -282,7 +282,7 @@ test("author endpoint enforces origin, bounds and matching signed-in account bef
       .status,
     401,
   );
-  const cookie = `__Host-pp-session=${await seal({ id: 43, expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
+  const cookie = `__Host-pp-session=${await seal({ id: 43, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
   assert.equal(
     (
       await worker.fetch(
@@ -299,7 +299,7 @@ test("author endpoint enforces origin, bounds and matching signed-in account bef
   assert.equal(calls, 0);
 });
 test("same-account encrypted credentials support author extraction and malformed output is not retried", async (t) => {
-  const cookie = `__Host-pp-session=${await seal({ id: 42, expires: Date.now() + 60000 }, env.SESSION_SECRET)}; ${(await saveAccountKey(env.SESSION_SECRET, 42, { provider: "openai", model: "gpt-6-luna", apiKey: key })).cookie.split(";")[0]}`;
+  const cookie = `__Host-pp-session=${await seal({ id: 42, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}; ${(await saveAccountKey(env.SESSION_SECRET, 42, { provider: "openai", model: "gpt-6-luna", apiKey: key })).cookie.split(";")[0]}`;
   let calls = 0;
   t.mock.method(
     globalThis,

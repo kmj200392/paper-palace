@@ -41,6 +41,14 @@ import {
   verifyAuthorDetails,
 } from "./author-affiliations";
 export { ArxivSearch } from "./arxiv-search";
+export { GithubSession } from "./session";
+import {
+  createSession,
+  readSession,
+  requireSession,
+  logoutSession,
+  type SessionNamespace,
+} from "./session";
 import {
   randomToken,
   challenge,
@@ -62,13 +70,7 @@ interface Env {
   GITHUB_APP_SLUG: string;
   SESSION_SECRET: string;
   ARXIV_SEARCH?: SearchNamespace;
-}
-interface Session {
-  token: string;
-  login: string;
-  id: number;
-  name: string;
-  expires: number;
+  GITHUB_SESSIONS?: SessionNamespace;
 }
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -101,14 +103,6 @@ async function gh(path: string, token: string, init: RequestInit = {}) {
     },
     signal: AbortSignal.timeout(20000),
   });
-}
-async function requireSession(req: Request, env: Env) {
-  const s = await unseal<Session>(
-    cookieValue(req, "__Host-pp-session"),
-    env.SESSION_SECRET,
-  );
-  if (!s) throw new HttpError(401, "GitHub에 다시 로그인해 주세요.");
-  return s;
 }
 async function body(req: Request, limit = 3500000) {
   try {
@@ -575,6 +569,7 @@ export default {
           verifier = randomToken();
         const params = new URLSearchParams({
           client_id: env.GITHUB_CLIENT_ID,
+          scope: "offline_access",
           redirect_uri: `${origin}/api/auth/callback`,
           state,
           code_challenge: await challenge(verifier),
@@ -634,40 +629,42 @@ export default {
           id: number;
           name: string;
         };
-        const age = Math.min(token.expires_in || 28800, 28800);
-        const session = await seal(
+        const sessionCookie = await createSession(
+          env,
           {
-            token: token.access_token,
             login: user.login,
             id: user.id,
             name: user.name || user.login,
-            expires: Date.now() + age * 1000,
           },
-          env.SESSION_SECRET,
+          token,
         );
         return redirect("/app/", [
-          cookie("__Host-pp-session", session, age),
+          sessionCookie,
           cookie("__Host-pp-oauth", "", 0),
         ]);
       }
-      if (path === "/api/auth/logout" && req.method === "POST")
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: {
-            "Content-Type": "application/json",
-            "Set-Cookie": cookie("__Host-pp-session", "", 0),
-            "Cache-Control": "no-store",
-          },
-        });
+      if (path === "/api/auth/logout" && req.method === "POST") {
+        const response = json({ ok: true });
+        response.headers.set("Set-Cookie", await logoutSession(req, env));
+        return response;
+      }
       if (path === "/api/me" && req.method === "GET") {
-        const s = await unseal<Session>(
-          cookieValue(req, "__Host-pp-session"),
-          env.SESSION_SECRET,
-        );
-        return json(
-          s
-            ? { user: { login: s.login, id: s.id, name: s.name } }
+        const auth = await readSession(req, env);
+        const response = json(
+          auth
+            ? {
+                user: {
+                  login: auth.session.login,
+                  id: auth.session.id,
+                  name: auth.session.name,
+                },
+                renewable: auth.renewable,
+              }
             : { user: null },
         );
+        if (auth?.renewedCookie)
+          response.headers.set("Set-Cookie", auth.renewedCookie);
+        return response;
       }
       if (path === "/api/ai-keys") {
         const session = await requireSession(req, env);
@@ -743,7 +740,13 @@ export default {
       if (path === "/api/repos" && req.method === "GET") {
         const s = await requireSession(req, env),
           r = await gh("/user/installations?per_page=100", s.token);
-        if (!r.ok) throw new HttpError(401, "GitHub에 다시 로그인해 주세요.");
+        if (r.status === 401)
+          throw new HttpError(401, "GitHub에 다시 로그인해 주세요.");
+        if (!r.ok)
+          throw new HttpError(
+            503,
+            "GitHub 연결이 지연되고 있어요. 잠시 후 다시 시도해 주세요.",
+          );
         const data = (await r.json()) as {
           installations: { id: number; app_slug: string }[];
         };

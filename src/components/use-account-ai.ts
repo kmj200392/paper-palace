@@ -7,7 +7,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError, isAuthenticationError } from "@/lib/api";
 import {
   accountAISettings,
   defaultAISettings,
@@ -51,7 +51,7 @@ export function useAccountAI(
       if (generation.current !== ticket || activeAccount.current !== userId)
         return;
       if (result.userId !== userId)
-        throw new Error("로그인 계정이 바뀌었어요. 새로고침해 주세요.");
+        throw new ApiError(409, "로그인 계정이 바뀌었어요. 새로고침해 주세요.");
       const next = Object.fromEntries(
         result.keys.map((key) => [key.provider, key]),
       ) as AccountAIKeys;
@@ -82,11 +82,14 @@ export function useAccountAI(
     } catch (e) {
       if (generation.current !== ticket || activeAccount.current !== userId)
         return;
-      setKeys({});
       setError((e as Error).message);
-      setAi((current) =>
-        current.accountId ? defaultAISettings(current.provider) : current,
-      );
+      // A failed status check is not evidence that a saved connection was removed.
+      if (isAuthenticationError(e)) {
+        setKeys({});
+        setAi((current) =>
+          current.accountId ? defaultAISettings(current.provider) : current,
+        );
+      }
     } finally {
       if (generation.current === ticket) setLoading(false);
     }
@@ -106,6 +109,7 @@ export function useAccountAI(
       if (document.visibilityState === "visible") void refresh();
     };
     window.addEventListener("focus", focus);
+    window.addEventListener("online", focus);
     const channel =
       typeof BroadcastChannel === "undefined"
         ? null
@@ -114,6 +118,7 @@ export function useAccountAI(
     return () => {
       generation.current++;
       window.removeEventListener("focus", focus);
+      window.removeEventListener("online", focus);
       channel?.close();
     };
   }, [refresh, userId, setAi]);

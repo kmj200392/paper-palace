@@ -337,7 +337,7 @@ test("discovery rejects cross-origin, invalid graph, missing credentials and sta
     ).status,
     401,
   );
-  const cookie = `__Host-pp-session=${await seal({ id: 43, expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
+  const cookie = `__Host-pp-session=${await seal({ id: 43, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
   assert.equal(
     (
       await worker.fetch(
@@ -354,7 +354,7 @@ test("discovery rejects cross-origin, invalid graph, missing credentials and sta
   assert.equal(calls, 0);
 });
 test("same-account encrypted keys power discovery without exposing the key", async (t) => {
-  const cookie = `__Host-pp-session=${await seal({ id: 42, expires: Date.now() + 60000 }, env.SESSION_SECRET)}; ${(await saveAccountKey(env.SESSION_SECRET, 42, { provider: "openai", model: "gpt-6-luna", apiKey: testKey })).cookie.split(";")[0]}`;
+  const cookie = `__Host-pp-session=${await seal({ id: 42, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}; ${(await saveAccountKey(env.SESSION_SECRET, 42, { provider: "openai", model: "gpt-6-luna", apiKey: testKey })).cookie.split(";")[0]}`;
   let calls = 0;
   t.mock.method(
     globalThis,

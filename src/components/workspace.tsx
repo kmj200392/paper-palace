@@ -85,6 +85,10 @@ export default function Workspace() {
   const closeMobileSidebar = () => {
     if (window.matchMedia("(max-width: 600px)").matches) resizeSidebar(true);
   };
+  const [bootAttempt, setBootAttempt] = useState(0);
+  const [bootError, setBootError] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [renewable, setRenewable] = useState(true);
   const [suggesting, setSuggesting] = useState(false);
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
@@ -138,7 +142,7 @@ export default function Workspace() {
     account,
     ai,
     library,
-    enabled: ready && !settingsOpen,
+    enabled: ready && !settingsOpen && !sessionExpired,
     update: setLibrary,
   });
   const [connectingFolder, setConnectingFolder] = useState(false);
@@ -161,16 +165,38 @@ export default function Workspace() {
   const mutate = (fn: (l: Library) => Library) =>
     setLibrary((l) => ({ ...fn(l), updatedAt: new Date().toISOString() }));
   useEffect(() => {
-    let stopped = false;
+    let stopped = false,
+      retryPending = false;
+    const controller = new AbortController();
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    setBootError("");
     (async () => {
       try {
         const [me, conf] = await Promise.all([
-          api<{ user: User | null }>("/me"),
-          api<typeof config>("/config"),
+          api<{ user: User | null; renewable?: boolean }>("/me", {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(20000),
+            ]),
+          }),
+          api<typeof config>("/config", {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(20000),
+            ]),
+          }),
         ]);
         if (stopped) return;
-        setUser(me.user);
-        setConfig(conf);
+        if (
+          !me ||
+          !("user" in me) ||
+          (me.user !== null &&
+            (!Number.isInteger(me.user.id) || !me.user.login))
+        )
+          throw new Error(
+            "로그인 상태를 확인하지 못했어요. 다시 연결하는 중이에요.",
+          );
+        if (conf) setConfig(conf);
         const acc = me.user ? `github:${me.user.id}` : "guest";
         const [lib, savedRepo] = await Promise.all([
           loadLibrary(acc),
@@ -178,6 +204,8 @@ export default function Workspace() {
         ]);
         if (stopped) return;
         setAccount(acc);
+        setUser(me.user);
+        setRenewable(me.renewable !== false);
         setLibrary(lib);
         setRepo(savedRepo || "");
         // The explicit login button carries this tab's library and folder through OAuth.
@@ -232,23 +260,65 @@ export default function Workspace() {
               ? "GitHub 로그인 설정을 준비 중이에요. 브라우저 저장으로 먼저 사용할 수 있어요."
               : "GitHub 로그인에 실패했어요. 다시 로그인해 주세요.",
           );
-      } catch (e) {
-        setError((e as Error).message);
-        try {
-          setLibrary(await loadLibrary("guest"));
-        } catch {
-          setError(
-            "브라우저 저장소를 열 수 없어요. 저장 설정을 확인해 주세요.",
-          );
-        }
-      } finally {
         if (!stopped) setReady(true);
+      } catch (e) {
+        if (stopped) return;
+        setBootError((e as Error).message);
+        retryPending = true;
+        // Do not load or autosave a guest library while authentication is unknown.
+        retry = setTimeout(
+          () => setBootAttempt((n) => n + 1),
+          Math.min(30000, 3000 * 2 ** Math.min(bootAttempt, 4)),
+        );
       }
     })();
+    const retryOnline = () => {
+      if (retryPending) setBootAttempt((n) => n + 1);
+    };
+    window.addEventListener("online", retryOnline);
     return () => {
       stopped = true;
+      controller.abort();
+      clearTimeout(retry);
+      window.removeEventListener("online", retryOnline);
     };
-  }, []);
+  }, [bootAttempt]);
+  useEffect(() => {
+    if (!ready || !user) return;
+    let stopped = false,
+      checking = false;
+    const controller = new AbortController();
+    const check = async () => {
+      if (checking || document.visibilityState !== "visible") return;
+      checking = true;
+      try {
+        const result = await api<{ user: User | null }>("/me", {
+          signal: AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(20000),
+          ]),
+        });
+        if (!stopped && result && "user" in result)
+          setSessionExpired(result.user?.id !== user.id);
+      } catch {
+        /* Keep the current account and library during a temporary outage. */
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = setInterval(check, 30 * 60 * 1000);
+    window.addEventListener("focus", check);
+    window.addEventListener("online", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      stopped = true;
+      controller.abort();
+      clearInterval(timer);
+      window.removeEventListener("focus", check);
+      window.removeEventListener("online", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [ready, user]);
   useEffect(() => {
     if (!ready) return;
     const timer = setTimeout(
@@ -555,6 +625,30 @@ export default function Workspace() {
         .includes(search.toLowerCase()),
   );
   const paper = library.papers.find((p) => p.id === selected);
+  if (!ready)
+    return (
+      <main className="session-loading" aria-busy={!bootError}>
+        <Brand />
+        <div role="status">
+          <LoaderCircle size={22} className="spin" />
+          {bootError
+            ? "로그인 연결을 다시 확인하고 있어요."
+            : "나의 연구 공간을 여는 중…"}
+        </div>
+        {bootError && (
+          <>
+            <p>{bootError}</p>
+            <button
+              className="button secondary"
+              onClick={() => setBootAttempt((n) => n + 1)}
+            >
+              다시 연결
+            </button>
+          </>
+        )}
+        {storage.conflictDialog}
+      </main>
+    );
   return (
     <div className={`workspace${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <aside
@@ -796,6 +890,21 @@ export default function Workspace() {
                   );
                 }}
               />
+            </div>
+          )}
+          {user && (sessionExpired || !renewable) && (
+            <div className="session-notice" role="status">
+              <span>
+                {sessionExpired
+                  ? "로그인 연결을 다시 확인해 주세요. 현재 연구 자료는 그대로 유지돼요."
+                  : "로그인을 한 번 갱신하면 앞으로 자동으로 유지돼요."}
+              </span>
+              <button
+                className="button secondary small"
+                onClick={() => void login()}
+              >
+                다시 로그인
+              </button>
             </div>
           )}
           {!ready ? (

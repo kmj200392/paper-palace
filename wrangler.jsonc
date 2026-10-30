@@ -25,7 +25,13 @@
   ],
   "workers_dev": true,
   "durable_objects": {
-    "bindings": [{ "name": "ARXIV_SEARCH", "class_name": "ArxivSearch" }],
+    "bindings": [
+      { "name": "ARXIV_SEARCH", "class_name": "ArxivSearch" },
+      { "name": "GITHUB_SESSIONS", "class_name": "GithubSession" },
+    ],
   },
-  "migrations": [{ "tag": "arxiv-search-v1", "new_sqlite_classes": ["ArxivSearch"] }],
+  "migrations": [
+    { "tag": "arxiv-search-v1", "new_sqlite_classes": ["ArxivSearch"] },
+    { "tag": "github-sessions-v1", "new_sqlite_classes": ["GithubSession"] },
+  ],
 }
