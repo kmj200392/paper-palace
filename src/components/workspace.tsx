@@ -60,23 +60,27 @@ import { importPaper } from "@/lib/source";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    let collapsed = window.matchMedia("(max-width: 600px)").matches;
     try {
-      setSidebarCollapsed(
-        localStorage.getItem("paper-palace:sidebar-collapsed") === "true",
-      );
+      const saved = localStorage.getItem("paper-palace:sidebar-collapsed");
+      if (saved !== null) collapsed = saved === "true";
     } catch {
       /* Preferences can be unavailable in private mode. */
     }
+    setSidebarCollapsed(collapsed);
   }, []);
-  const toggleSidebar = () => {
-    const next = !sidebarCollapsed;
+  const resizeSidebar = (next: boolean) => {
     setSidebarCollapsed(next);
     try {
       localStorage.setItem("paper-palace:sidebar-collapsed", String(next));
     } catch {
       /* Keep the in-memory preference. */
     }
+  };
+  const closeMobileSidebar = () => {
+    if (window.matchMedia("(max-width: 600px)").matches) resizeSidebar(true);
   };
   const [suggesting, setSuggesting] = useState(false);
   const [user, setUser] = useState<User | null>(null),
@@ -553,31 +557,112 @@ export default function Workspace() {
       <aside
         id="workspace-sidebar"
         className="sidebar"
-        hidden={sidebarCollapsed}
+        aria-label="연구 공간 사이드바"
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !sidebarCollapsed) {
+            closeMobileSidebar();
+            sidebarToggle.current?.focus();
+          }
+        }}
       >
-        <Brand compact />
-        <span className="sidebar-label">MY PALACE</span>
+        <div className="sidebar-heading">
+          <Brand compact />
+          <button
+            ref={sidebarToggle}
+            className="icon-button sidebar-toggle"
+            onClick={() => resizeSidebar(!sidebarCollapsed)}
+            aria-controls="workspace-sidebar"
+            aria-expanded={!sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen size={19} />
+            ) : (
+              <PanelLeftClose size={19} />
+            )}
+          </button>
+        </div>
+        <button
+          className="sidebar-item sidebar-add"
+          aria-label="논문 추가"
+          title="논문 추가"
+          onClick={() => {
+            setError("");
+            setAddOpen(true);
+          }}
+        >
+          <Plus size={19} aria-hidden="true" />
+          <span className="sidebar-text">논문 추가</span>
+        </button>
+        <span className="sidebar-label">
+          {selected
+            ? "READING ROOM"
+            : view === "graph"
+              ? "YOUR PERSONAL RESEARCH GRAPH"
+              : "YOUR PERSONAL LIBRARY"}
+        </span>
         <nav aria-label="연구 공간 메뉴">
           <button
-            className={view === "library" && !selected ? "active" : ""}
+            className={`sidebar-item ${view === "library" && !selected ? "active" : ""}`}
+            aria-label="라이브러리"
+            aria-current={view === "library" && !selected ? "page" : undefined}
+            title={`라이브러리 · ${library.papers.length}편`}
             onClick={() => {
               setView("library");
               setSelected(null);
+              closeMobileSidebar();
             }}
           >
-            <LibraryIcon size={19} /> 라이브러리{" "}
-            <span>{library.papers.length}</span>
+            <LibraryIcon size={19} aria-hidden="true" />
+            <span className="sidebar-text">라이브러리</span>
+            <span className="sidebar-count">{library.papers.length}</span>
           </button>
           <button
-            className={view === "graph" && !selected ? "active" : ""}
+            className={`sidebar-item ${view === "graph" && !selected ? "active" : ""}`}
+            aria-label="지식 지도"
+            aria-current={view === "graph" && !selected ? "page" : undefined}
+            title={`지식 지도 · ${library.edges.length}개 연결`}
             onClick={() => {
               setView("graph");
               setSelected(null);
+              closeMobileSidebar();
             }}
           >
-            <Network size={19} /> 지식 지도 <span>{library.edges.length}</span>
+            <Network size={19} aria-hidden="true" />
+            <span className="sidebar-text">지식 지도</span>
+            <span className="sidebar-count">{library.edges.length}</span>
           </button>
         </nav>
+        <div className="sidebar-connections">
+          <button
+            className={`sidebar-item key-status ${hasAIConnection(ai) ? "connected" : ""}`}
+            aria-label={hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
+            title={hasAIConnection(ai) ? "AI 연결됨 · 연결 설정" : "AI 연결"}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <KeyRound size={18} aria-hidden="true" />
+            <span className="sidebar-text">
+              {hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
+            </span>
+          </button>
+          <button
+            className="sidebar-item sync-button"
+            aria-label={syncing ? "동기화 중" : "GitHub 동기화"}
+            title={syncing ? "동기화 중" : "GitHub 동기화"}
+            disabled={syncing}
+            onClick={sync}
+          >
+            <RefreshCw
+              size={18}
+              className={syncing ? "spin" : ""}
+              aria-hidden="true"
+            />
+            <span className="sidebar-text">
+              {syncing ? "동기화 중" : "GitHub 동기화"}
+            </span>
+          </button>
+        </div>
         <div className="sidebar-bottom">
           <div className="sidebar-quote">
             A little reading.
@@ -585,86 +670,69 @@ export default function Workspace() {
             <em>A new connection.</em>
           </div>
           <button
-            className="sidebar-settings"
+            className="sidebar-item sidebar-settings"
+            aria-label="연결 및 설정"
+            title="연결 및 설정"
             onClick={() => setSettingsOpen(true)}
           >
-            <Settings size={17} /> 연결 및 설정
+            <Settings size={18} aria-hidden="true" />
+            <span className="sidebar-text">연결 및 설정</span>
           </button>
           {user ? (
-            <button className="user-info" onClick={() => setSettingsOpen(true)}>
+            <button
+              className="user-info"
+              aria-label={`${user.name || user.login} 계정 설정`}
+              title={`${user.name || user.login} · @${user.login}`}
+              onClick={() => setSettingsOpen(true)}
+            >
               <span className="avatar">
                 {user.login.slice(0, 1).toUpperCase()}
               </span>
-              <span>
+              <span className="sidebar-text">
                 {user.name}
                 <small>@{user.login}</small>
               </span>
-              <ChevronRight size={15} />
+              <ChevronRight
+                size={15}
+                className="sidebar-user-chevron"
+                aria-hidden="true"
+              />
             </button>
           ) : (
-            <button className="github-login" onClick={login} disabled={!ready}>
-              <Github size={18} /> GitHub으로 로그인
+            <button
+              className="sidebar-item github-login"
+              aria-label="GitHub으로 로그인"
+              title="GitHub으로 로그인"
+              onClick={login}
+              disabled={!ready}
+            >
+              <Github size={18} aria-hidden="true" />
+              <span className="sidebar-text">GitHub으로 로그인</span>
             </button>
           )}
-          <a className="sidebar-home" href="/">
-            Paper Palace 소개 <ArrowUpRight size={12} />
+          <a
+            className="sidebar-item sidebar-home"
+            href="/"
+            aria-label="Paper Palace 소개"
+            title="Paper Palace 소개"
+          >
+            <ArrowUpRight size={18} aria-hidden="true" />
+            <span className="sidebar-text">Paper Palace 소개</span>
           </a>
         </div>
       </aside>
-      <div className="workspace-main">
-        <header className="workspace-header">
-          <div className="workspace-context">
-            <button
-              className="icon-button sidebar-toggle"
-              onClick={toggleSidebar}
-              aria-controls="workspace-sidebar"
-              aria-expanded={!sidebarCollapsed}
-              aria-label={
-                sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"
-              }
-              title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
-            >
-              {sidebarCollapsed ? (
-                <PanelLeftOpen size={19} />
-              ) : (
-                <PanelLeftClose size={19} />
-              )}
-            </button>
-            <span className="workspace-context-label">
-              {selected
-                ? "READING ROOM"
-                : view === "graph"
-                  ? "YOUR PERSONAL RESEARCH GRAPH"
-                  : "YOUR PERSONAL LIBRARY"}
-            </span>
-          </div>
-          <div>
-            <button
-              className={`key-status ${hasAIConnection(ai) ? "connected" : ""}`}
-              onClick={() => setSettingsOpen(true)}
-            >
-              <KeyRound size={14} />
-              {hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
-            </button>
-            <button
-              className="text-button sync-button"
-              disabled={syncing}
-              onClick={sync}
-            >
-              <RefreshCw size={15} className={syncing ? "spin" : ""} />
-              {syncing ? "동기화 중" : "GitHub 동기화"}
-            </button>
-            <button
-              className="button primary small"
-              onClick={() => {
-                setError("");
-                setAddOpen(true);
-              }}
-            >
-              <Plus size={16} /> 논문 추가
-            </button>
-          </div>
-        </header>
+      {!sidebarCollapsed && (
+        <button
+          className="sidebar-scrim"
+          aria-label="사이드바 접기"
+          tabIndex={-1}
+          onClick={() => {
+            resizeSidebar(true);
+            sidebarToggle.current?.focus();
+          }}
+        />
+      )}
+      <div className={`workspace-main${selected ? " is-reading" : ""}`}>
         <main id="main" className={selected ? "reader-main" : "library-main"}>
           {storage.folder &&
             (storage.status === "permission" || storage.status === "error") && (

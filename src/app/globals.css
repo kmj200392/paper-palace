@@ -954,116 +954,145 @@ summary::-webkit-details-marker {
 }
 /* The working library */
 .workspace {
+  --sidebar-width: 240px;
   display: flex;
   min-height: 100dvh;
 }
+/* Full navigation and its compact icon rail share the same controls. */
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 232px;
+  width: var(--sidebar-width);
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-right: 1px solid var(--line);
-  padding: 29px 23px 18px;
+  padding: 24px 18px 16px;
   display: flex;
   flex-direction: column;
   background: #eeefe6;
   z-index: 20;
 }
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 24px;
+}
 .sidebar .brand {
-  margin-bottom: 55px;
-  gap: 5px;
+  gap: 4px;
+  min-width: 0;
 }
 .sidebar .brand > span:last-child {
-  font-size: 22px;
+  font-size: 19px;
 }
 .sidebar .brand-mark {
-  width: 34px;
+  width: 30px;
+}
+.sidebar-toggle {
+  flex-shrink: 0;
+  color: #667a53;
 }
 .sidebar-label {
   font-size: 8px;
-  letter-spacing: 2px;
+  letter-spacing: 1.4px;
+  line-height: 1.7;
   color: #959e89;
-  margin: 0 12px 15px;
+  margin: 24px 12px 12px;
 }
-.sidebar nav {
+.sidebar nav,
+.sidebar-connections {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.sidebar nav button {
+.sidebar-connections {
+  border-top: 1px solid #d9dece;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+.sidebar-item {
   display: flex;
   align-items: center;
   gap: 11px;
+  width: 100%;
+  min-height: 44px;
   text-align: left;
-  padding: 12px 13px;
+  padding: 10px 12px;
   border-radius: 5px;
   font-size: 12px;
   color: #6e7964;
   white-space: nowrap;
 }
-.sidebar nav button.active {
+.sidebar-item > svg {
+  flex-shrink: 0;
+}
+.sidebar-item.active {
   background: #dce3d0;
   color: #3e5036;
 }
-.sidebar nav button:hover {
+.sidebar-item:hover:not(:disabled) {
   background: #e2e7d8;
 }
-.sidebar nav button > span {
+.sidebar-item.sidebar-add {
+  background: var(--green);
+  color: #f7f8f1;
+  font-weight: 550;
+}
+.sidebar-item.sidebar-add:hover {
+  background: #304337;
+}
+.sidebar-count {
   margin-left: auto;
   font-size: 10px;
   opacity: 0.7;
 }
+.sidebar-item.key-status.connected {
+  color: #477444;
+}
 .sidebar-bottom {
   margin-top: auto;
+  padding-top: 18px;
 }
 .sidebar-quote {
   font-family: var(--serif);
   font-size: 20px;
   line-height: 1.4;
   color: #8a947b;
-  margin: 25px 10px 36px;
+  margin: 18px 10px 24px;
 }
 .sidebar-quote em {
   color: #657654;
 }
 .sidebar-settings {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 11px;
   color: #7e8873;
-  padding: 13px 8px;
-  width: 100%;
-  text-align: left;
 }
 .github-login {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 12px 5px;
   border: 1px solid #c3ccb7;
-  border-radius: 4px;
+  margin: 8px 0;
   font-size: 11px;
-  margin: 10px 0;
 }
 .sidebar-home {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  font-size: 9px;
+  font-size: 10px;
   color: #959c8c;
-  padding-top: 11px;
 }
 .user-info {
   display: flex;
   align-items: center;
   gap: 9px;
   border-top: 1px solid #d4dcca;
-  padding: 15px 0;
+  padding: 12px 0;
+  margin-top: 8px;
   width: 100%;
   text-align: left;
   font-size: 12px;
+}
+.user-info .sidebar-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .user-info small {
   display: block;
@@ -1072,6 +1101,35 @@ summary::-webkit-details-marker {
 }
 .user-info > svg {
   margin-left: auto;
+  flex-shrink: 0;
+}
+.sidebar-scrim {
+  display: none;
+}
+.sidebar-collapsed .sidebar {
+  padding-inline: 12px;
+}
+.sidebar-collapsed .sidebar-heading {
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sidebar-collapsed .sidebar .brand > span:last-child,
+.sidebar-collapsed .sidebar-text,
+.sidebar-collapsed .sidebar-count,
+.sidebar-collapsed .sidebar-label,
+.sidebar-collapsed .sidebar-quote,
+.sidebar-collapsed .sidebar-user-chevron {
+  display: none;
+}
+.sidebar-collapsed .sidebar nav {
+  margin-top: 18px;
+}
+.sidebar-collapsed .sidebar-item,
+.sidebar-collapsed .user-info {
+  justify-content: center;
+  padding-inline: 0;
+  gap: 0;
 }
 .avatar {
   height: 30px;
@@ -1084,45 +1142,15 @@ summary::-webkit-details-marker {
   font-family: var(--serif);
   font-size: 17px;
 }
+.workspace.sidebar-collapsed {
+  --sidebar-width: 68px;
+}
 .workspace-main {
-  margin-left: 232px;
+  margin-left: var(--sidebar-width);
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-}
-.workspace-header {
-  height: 75px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 34px;
-  gap: 20px;
-  background: var(--paper);
-}
-.workspace-context-label {
-  font-size: 8px;
-  letter-spacing: 1.9px;
-  color: #939b87;
-}
-.workspace-header > div {
-  display: flex;
-  gap: 22px;
-  align-items: center;
-}
-.key-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  color: #909882;
-}
-.key-status.connected {
-  color: #477444;
-}
-.workspace-header .text-button {
-  font-size: 10px;
 }
 .library-main {
   padding: 42px 38px 50px;
@@ -1457,6 +1485,7 @@ summary::-webkit-details-marker {
   line-height: 1.9;
 }
 .workspace-footer {
+  flex-shrink: 0;
   margin-top: auto;
   padding: 18px 35px;
   border-top: 1px solid var(--line);
@@ -1788,11 +1817,24 @@ summary::-webkit-details-marker {
   color: #96a089;
 }
 /* Original and its reading companion */
+.workspace-main.is-reading {
+  height: 100dvh;
+}
 .reader-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.reader {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 }
 .reader-toolbar {
+  flex-shrink: 0;
   height: 58px;
   padding: 0 26px;
   border-bottom: 1px solid var(--line);
@@ -1822,8 +1864,8 @@ summary::-webkit-details-marker {
 .reader-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
-  height: calc(100dvh - 181px);
-  min-height: 550px;
+  flex: 1;
+  min-height: 0;
 }
 .source-panel,
 .analysis-panel {
@@ -2281,6 +2323,7 @@ summary::-webkit-details-marker {
   min-height: 450px;
 }
 .mobile-reader-tabs {
+  flex-shrink: 0;
   display: none;
 }
 /* A living map */
@@ -2616,22 +2659,6 @@ summary::-webkit-details-marker {
   .ownership-columns h3 {
     font-size: 20px;
   }
-  .sidebar {
-    width: 205px;
-    padding: 25px 16px;
-  }
-  .workspace-main {
-    margin-left: 205px;
-  }
-  .sidebar .brand > span:last-child {
-    font-size: 21px;
-  }
-  .workspace-header {
-    padding-inline: 23px;
-  }
-  .workspace-header > div {
-    gap: 16px;
-  }
   .library-main {
     padding: 35px 25px;
   }
@@ -2871,46 +2898,6 @@ summary::-webkit-details-marker {
     border-top: 1px solid var(--line);
     padding-top: 15px;
   }
-  .sidebar {
-    width: 176px;
-    padding-inline: 12px;
-  }
-  .sidebar .brand {
-    gap: 2px;
-  }
-  .sidebar .brand > span:last-child {
-    font-size: 18px;
-  }
-  .sidebar .brand-mark {
-    width: 30px;
-  }
-  .sidebar nav button {
-    font-size: 11px;
-    gap: 8px;
-    padding-inline: 9px;
-  }
-  .workspace-main {
-    margin-left: 176px;
-  }
-  .sidebar-quote {
-    font-size: 18px;
-  }
-  .github-login {
-    font-size: 10px;
-    gap: 6px;
-  }
-  .workspace-header {
-    height: 66px;
-    padding-inline: 18px;
-  }
-  .workspace-header > span {
-    display: none;
-  }
-  .workspace-header > div {
-    width: 100%;
-    justify-content: space-between;
-    gap: 10px;
-  }
   .library-main {
     padding: 30px 20px;
   }
@@ -2947,9 +2934,7 @@ summary::-webkit-details-marker {
     display: none;
   }
   .reader-columns {
-    height: calc(100dvh - 172px);
     grid-template-columns: 1fr;
-    min-height: 500px;
   }
   .mobile-reader-tabs {
     display: flex;
@@ -2984,9 +2969,6 @@ summary::-webkit-details-marker {
   }
   .paper-document > h1 {
     font-size: 29px;
-  }
-  .reader-columns {
-    height: calc(100dvh - 212px);
   }
   .analysis-scroll {
     min-height: 0;
@@ -3330,90 +3312,6 @@ summary::-webkit-details-marker {
   .legal p {
     font-size: 12px;
   }
-  .sidebar {
-    position: sticky;
-    inset: 0 0 auto 0;
-    width: 100%;
-    height: 66px;
-    flex-direction: row;
-    align-items: center;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    padding: 0 14px;
-    gap: 10px;
-  }
-  .workspace {
-    display: block;
-  }
-  .sidebar .brand {
-    margin: 0;
-  }
-  .sidebar .brand > span:last-child {
-    font-size: 18px;
-  }
-  .sidebar .brand-mark {
-    display: none;
-  }
-  .sidebar .sidebar-label,
-  .sidebar-quote,
-  .sidebar-home,
-  .sidebar .github-login,
-  .sidebar .user-info {
-    display: none;
-  }
-  .sidebar nav {
-    flex-direction: row;
-    gap: 3px;
-    margin-left: auto;
-  }
-  .sidebar nav button {
-    padding: 8px;
-    font-size: 10px;
-    gap: 5px;
-  }
-  .sidebar nav button > span {
-    display: none;
-  }
-  .sidebar nav svg {
-    width: 15px;
-  }
-  .sidebar-bottom {
-    margin: 0;
-  }
-  .sidebar-settings {
-    font-size: 0;
-    width: 30px;
-    height: 30px;
-    padding: 6px;
-    gap: 0;
-  }
-  .sidebar-settings svg {
-    width: 17px;
-  }
-  .workspace-main {
-    margin: 0;
-    min-height: calc(100dvh - 66px);
-  }
-  .workspace-header {
-    height: 58px;
-    padding: 0 17px;
-  }
-  .workspace-header > div {
-    gap: 10px;
-  }
-  .workspace-header .button {
-    font-size: 10px;
-    padding: 7px 10px;
-  }
-  .workspace-header .text-button {
-    font-size: 9px;
-  }
-  .key-status {
-    font-size: 9px;
-  }
-  .workspace-header svg {
-    width: 13px;
-  }
   .library-main {
     padding: 28px 18px 35px;
   }
@@ -3538,10 +3436,6 @@ summary::-webkit-details-marker {
   }
   .toolbar-right select {
     font-size: 9px;
-  }
-  .reader-columns {
-    height: calc(100dvh - 253px);
-    min-height: 420px;
   }
   .paper-document {
     padding: 28px 24px;
@@ -3856,22 +3750,6 @@ summary::-webkit-details-marker {
 }
 
 /* Reading room: keep the original page, figures, and equations intact. */
-.sidebar[hidden] {
-  display: none;
-}
-.workspace.sidebar-collapsed .workspace-main {
-  margin-left: 0;
-}
-.workspace-header > .workspace-context {
-  gap: 12px;
-  min-width: 0;
-  width: auto;
-  flex-shrink: 0;
-}
-.sidebar-toggle {
-  flex-shrink: 0;
-  color: #667a53;
-}
 .source-scroll.is-pdf {
   overflow: hidden;
   display: flex;
@@ -4040,43 +3918,13 @@ summary::-webkit-details-marker {
   .reader-columns {
     grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
   }
-  .workspace-context-label {
-    display: none;
-  }
 }
 @media (max-width: 850px) {
-  .workspace-context-label {
-    display: none;
-  }
-  .workspace-header > div:not(.workspace-context) {
-    width: auto;
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .workspace-header button {
-    white-space: nowrap;
-  }
   .pdf-toolbar {
     padding-inline: 7px;
   }
 }
 @media (max-width: 600px) {
-  .workspace.sidebar-collapsed .workspace-main {
-    min-height: 100dvh;
-  }
-  .sidebar-collapsed .reader-columns {
-    height: calc(100dvh - 187px);
-  }
-  .workspace-header > .workspace-context {
-    gap: 0;
-  }
-  .workspace-header {
-    gap: 8px;
-    padding-inline: 12px;
-  }
-  .workspace-header > div:not(.workspace-context) {
-    gap: 9px;
-  }
   .pdf-toolbar .icon-button {
     width: 27px;
   }
@@ -4085,5 +3933,47 @@ summary::-webkit-details-marker {
   }
   .pdf-reading-hint {
     font-size: 8px;
+  }
+}
+
+/* Small screens keep the icon rail; expanded navigation overlays the page. */
+@media (max-width: 600px) {
+  .workspace,
+  .workspace.sidebar-collapsed {
+    --sidebar-width: 60px;
+  }
+  .sidebar {
+    width: 240px;
+    max-width: 85vw;
+    padding-top: 16px;
+  }
+  .sidebar-collapsed .sidebar {
+    width: var(--sidebar-width);
+    padding-inline: 8px;
+  }
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #25302033;
+    z-index: 19;
+  }
+  .sidebar-quote {
+    display: none;
+  }
+  .reader-toolbar {
+    padding-inline: 10px;
+    gap: 6px;
+  }
+  .toolbar-right {
+    gap: 4px;
+  }
+  .library-main {
+    padding-inline: 14px;
+  }
+}
+@media (max-height: 700px) {
+  .sidebar-quote {
+    display: none;
   }
 }

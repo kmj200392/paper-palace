@@ -9,7 +9,7 @@ Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries,
 ## Features
 
 - arXiv metadata and version-aware reading, opening in the original PDF by default. The PDF.js viewer preserves figures/equations, offers page navigation, zoom/fit, text search, and selectable text. Selected text can be appended to existing notes with its page number (up to 2,000 characters per selection on one page). Extracted text remains available as a fallback.
-- The workspace sidebar can be collapsed or expanded from the header; this browser remembers the preference across refreshes.
+- The sidebar holds navigation, paper import, AI connection and GitHub sync. Collapse it to an icon rail without losing access to actions; this browser remembers the preference across refreshes. On small screens, expanded navigation overlays the reading area.
 - Motivation, core concept, method, experimental setup and results, generated with your OpenAI or Anthropic API key.
 - Detailed explanations use titled paragraphs to explain mechanisms, experimental conditions, comparisons and limitations with verified source links. Older summaries stay readable and can be replaced explicitly with **상세 해설로 다시 정리**; notes remain intact. New analysis requests allow up to 24,000 output tokens on OpenAI or 16,000 on Anthropic, with one provider call and no automatic paid retry.
 - OpenAI defaults to `gpt-6-luna` for paper analysis and graph suggestions. Saved connections using the former `gpt-5-mini` default restore with Luna; other saved model IDs are preserved.
