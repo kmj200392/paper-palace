@@ -27,9 +27,12 @@ import {
   SlidersHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  Compass,
 } from "lucide-react";
 import { Brand } from "./brand";
 import { MakerCredit } from "./maker-credit";
+import { PaperDiscovery } from "./paper-discovery";
+import { addRecommendation } from "@/lib/recommendations";
 import { AIConnection } from "./ai-connection";
 import { useAccountAI } from "./use-account-ai";
 import { usePaperLabels } from "./use-paper-labels";
@@ -87,7 +90,7 @@ export default function Workspace() {
     [ready, setReady] = useState(false),
     [account, setAccount] = useState("guest"),
     [library, setLibraryState] = useState<Library>(emptyLibrary),
-    [view, setView] = useState<"library" | "graph">("library"),
+    [view, setView] = useState<"library" | "graph" | "discover">("library"),
     [selected, setSelected] = useState<string | null>(null),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
@@ -598,9 +601,11 @@ export default function Workspace() {
         <span className="sidebar-label">
           {selected
             ? "READING ROOM"
-            : view === "graph"
-              ? "YOUR PERSONAL RESEARCH GRAPH"
-              : "YOUR PERSONAL LIBRARY"}
+            : view === "discover"
+              ? "YOUR NEXT CONNECTION"
+              : view === "graph"
+                ? "YOUR PERSONAL RESEARCH GRAPH"
+                : "YOUR PERSONAL LIBRARY"}
         </span>
         <nav aria-label="연구 공간 메뉴">
           <button
@@ -632,6 +637,20 @@ export default function Workspace() {
             <Network size={19} aria-hidden="true" />
             <span className="sidebar-text">지식 지도</span>
             <span className="sidebar-count">{library.edges.length}</span>
+          </button>
+          <button
+            className={`sidebar-item ${view === "discover" && !selected ? "active" : ""}`}
+            aria-label="논문 찾기"
+            aria-current={view === "discover" && !selected ? "page" : undefined}
+            title="내 그래프를 바탕으로 논문 찾기"
+            onClick={() => {
+              setView("discover");
+              setSelected(null);
+              closeMobileSidebar();
+            }}
+          >
+            <Compass size={19} aria-hidden="true" />
+            <span className="sidebar-text">논문 찾기</span>
           </button>
         </nav>
         <div className="sidebar-connections">
@@ -758,6 +777,27 @@ export default function Workspace() {
               </button>
             </div>
           )}
+          {ready && (
+            <div hidden={!!paper || view !== "discover"}>
+              <PaperDiscovery
+                key={account}
+                library={library}
+                settings={ai}
+                openSettings={() => setSettingsOpen(true)}
+                onOpen={(id) => setSelected(id)}
+                onAdd={(recommendation, connections) => {
+                  mutate((l) =>
+                    addRecommendation(l, recommendation, connections),
+                  );
+                  notify(
+                    connections
+                      ? "논문과 검토할 점선 연결을 지도에 추가했어요."
+                      : "읽을 목록에 논문을 추가했어요.",
+                  );
+                }}
+              />
+            </div>
+          )}
           {!ready ? (
             <div className="loading-state">
               <LoaderCircle size={22} className="spin" /> 나의 연구 공간을 여는
@@ -770,7 +810,10 @@ export default function Workspace() {
               settings={ai}
               openSettings={() => setSettingsOpen(true)}
               notify={notify}
-              onBack={() => setSelected(null)}
+              onBack={() => {
+                setSelected(null);
+                setView("library");
+              }}
               onUpdate={(p) =>
                 mutate((l) => ({
                   ...l,
@@ -793,7 +836,7 @@ export default function Workspace() {
               }
               onDelete={() => setDeleteId(paper.id)}
             />
-          ) : (
+          ) : view === "discover" ? null : (
             <>
               <div className="library-heading">
                 <div>

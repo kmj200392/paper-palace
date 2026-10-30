@@ -10,6 +10,7 @@ Paper Palace pairs an arXiv reader with five-part, evidence-linked AI summaries,
 
 - arXiv metadata and version-aware reading, opening in the original PDF by default. The PDF.js viewer preserves figures/equations, offers page navigation, zoom/fit, text search, and selectable text. Selected text can be appended to existing notes with its page number (up to 2,000 characters per selection on one page). Extracted text remains available as a fallback.
 - The sidebar holds navigation, paper import, AI connection and GitHub sync. Collapse it to an icon rail without losing access to actions; this browser remembers the preference across refreshes. On small screens, expanded navigation overlays the reading area.
+- **논문 찾기** searches arXiv for a requested field using up to 60 existing papers and 180 directed graph relationships. It uses the connected AI account for at most two calls (search planning and candidate ranking), excludes every saved paper across versions, and recommends up to six verified arXiv results with Korean reasons, new perspectives and proposed links to existing papers. Personal paper notes and full texts are omitted. Adding a paper is explicit; graph links are optional and remain dashed suggestions. Results are held only in the current page, not stored on the server. An empty graph can still search by topic. Recommendations are based on metadata/abstracts, not verified full-text comparisons or citation relationships.
 - Motivation, core concept, method, experimental setup and results, generated with your OpenAI or Anthropic API key.
 - Detailed explanations use titled paragraphs to explain mechanisms, experimental conditions, comparisons and limitations with verified source links. Older summaries stay readable and can be replaced explicitly with **상세 해설로 다시 정리**; notes remain intact. New analysis requests allow up to 24,000 output tokens on OpenAI or 16,000 on Anthropic, with one provider call and no automatic paid retry.
 - OpenAI defaults to `gpt-6-luna` for paper analysis and graph suggestions. Saved connections using the former `gpt-5-mini` default restore with Luna; other saved model IDs are preserved.
@@ -32,6 +33,8 @@ npm run preview -- --var APP_ORIGIN:http://localhost:8787
 Open http://localhost:8787. The frontend-only hot reload server is `npm run dev`; use the full Worker preview for API features. After frontend edits, rebuild the static assets for Worker preview.
 
 ## Deploy to your Cloudflare account
+
+The `ARXIV_SEARCH` binding uses one SQLite Durable Object to keep arXiv API requests serial and at least 3.1 seconds apart across the service. It persists only the last upstream request time and keeps a bounded, one-hour in-memory cache of public metadata. The included migration creates the class on deployment. SQLite Durable Objects work on the Workers Free plan; this setup does not require enabling a paid plan. Free quota exhaustion returns an error. A busy search may need an explicit retry; provider calls are never automatically retried.
 
 Set `APP_ORIGIN`, `GITHUB_CLIENT_ID`, and `GITHUB_APP_SLUG` in `wrangler.jsonc`. Register a public GitHub App with **Contents: read and write** and **Metadata: read**; no webhook is needed. Set its OAuth callback to `https://YOUR_DOMAIN/api/auth/callback`. Users install it only on their selected private data repository.
 

@@ -21,6 +21,21 @@ import { analysisInstructions } from "./analysis-prompt";
 import { paperLabelInstructions } from "./paper-label-prompt";
 import { paperLabelsSchema, labelBatchSize } from "../src/lib/paper-labels";
 import {
+  candidateSchema,
+  canonicalPaperId,
+  discoveryInputSchema,
+} from "../src/lib/recommendations";
+import {
+  arxivSearchQuery,
+  planInstructions,
+  rankingInstructions,
+  rankingSchema,
+  searchPlanSchema,
+  verifiedRecommendations,
+} from "./discovery";
+import type { SearchNamespace } from "./arxiv-search";
+export { ArxivSearch } from "./arxiv-search";
+import {
   randomToken,
   challenge,
   seal,
@@ -40,6 +55,7 @@ interface Env {
   GITHUB_CLIENT_SECRET: string;
   GITHUB_APP_SLUG: string;
   SESSION_SECRET: string;
+  ARXIV_SEARCH?: SearchNamespace;
 }
 interface Session {
   token: string;
@@ -148,6 +164,7 @@ async function modelJSON(
   prompt: string,
   instructions: string,
   schemaName: string,
+  maxTokens?: number,
 ) {
   const openai = input.provider === "openai";
   const detailed = schemaName === "paper_analysis";
@@ -158,7 +175,8 @@ async function modelJSON(
         store: false,
         instructions,
         input: prompt,
-        max_output_tokens: naming ? 4000 : detailed ? 24000 : 12000,
+        max_output_tokens:
+          maxTokens ?? (naming ? 4000 : detailed ? 24000 : 12000),
         text: {
           ...(detailed && input.model === "gpt-6-luna"
             ? { verbosity: "high" }
@@ -173,7 +191,7 @@ async function modelJSON(
       }
     : {
         model: input.model,
-        max_tokens: naming ? 2000 : detailed ? 16000 : 10000,
+        max_tokens: maxTokens ?? (naming ? 2000 : detailed ? 16000 : 10000),
         system: instructions,
         messages: [{ role: "user", content: prompt }],
         output_config: {
@@ -392,6 +410,106 @@ async function relate(req: Request, env: Env) {
   return json({
     relations: parsed.data.relations.filter(
       (r) => ids.has(r.source) && ids.has(r.target) && r.source !== r.target,
+    ),
+  });
+}
+async function recommend(req: Request, env: Env) {
+  const input = discoveryInputSchema
+    .extend(aiRequestFields)
+    .parse(await body(req, 650000));
+  const contextIds = new Set(input.context.papers.map((p) => p.id));
+  if (
+    contextIds.size !== input.context.papers.length ||
+    input.context.edges.some(
+      (e) => !contextIds.has(e.source) || !contextIds.has(e.target),
+    )
+  )
+    throw new HttpError(400, "현재 그래프를 다시 불러온 뒤 검색해 주세요.");
+  if (!env.ARXIV_SEARCH)
+    throw new HttpError(503, "논문 검색 연결을 준비 중이에요.");
+  const credentials = await resolveAIKey(req, env, input);
+  const schema = (value: z.ZodType) => {
+    const result = z.toJSONSchema(value, { target: "draft-7" });
+    delete result.$schema;
+    return result;
+  };
+  const planned = await modelJSON(
+    credentials,
+    schema(searchPlanSchema),
+    JSON.stringify({ query: input.query, context: input.context }),
+    planInstructions,
+    "paper_search_plan",
+    3000,
+  );
+  const parsedPlan = searchPlanSchema.safeParse(planned.value);
+  if (!parsedPlan.success)
+    throw new HttpError(
+      502,
+      "검색어를 정리하지 못했어요. 분야를 조금 더 구체적으로 적어 주세요.",
+    );
+  const plan = parsedPlan.data;
+  const response = await env.ARXIV_SEARCH.get(
+    env.ARXIV_SEARCH.idFromName("global-arxiv-search"),
+  ).fetch(
+    new Request("https://arxiv-search.internal/", {
+      method: "POST",
+      body: JSON.stringify(plan),
+    }),
+  );
+  const found = JSON.parse(await boundedText(response, 1000000));
+  if (!response.ok)
+    throw new HttpError(
+      response.status,
+      typeof found.error === "string"
+        ? found.error
+        : "논문 검색을 완료하지 못했어요.",
+    );
+  const excluded = new Set(input.excludedIds.map(canonicalPaperId));
+  // Context IDs also exclude papers even if a caller omitted the exclusion list.
+  for (const id of contextIds) excluded.add(canonicalPaperId(id));
+  const candidates = z
+    .array(candidateSchema)
+    .max(40)
+    .parse(found.papers)
+    .filter((p) => !excluded.has(p.id));
+  const info = {
+    focus: plan.focus,
+    searchQuery: arxivSearchQuery(plan),
+    searchedAt: new Date().toISOString(),
+    candidateCount: candidates.length,
+    contextCount: input.context.papers.length,
+  };
+  if (!candidates.length) return json({ ...info, recommendations: [] });
+  const ranked = await modelJSON(
+    credentials,
+    schema(rankingSchema),
+    JSON.stringify({
+      query: input.query,
+      context: input.context,
+      candidates: candidates.map((p) => ({
+        id: p.id,
+        title: p.title,
+        abstract: p.abstract.slice(0, 3500),
+        published: p.published,
+        categories: p.categories,
+      })),
+    }),
+    rankingInstructions,
+    "paper_recommendations",
+    7000,
+  );
+  const parsedRank = rankingSchema.safeParse(ranked.value);
+  if (!parsedRank.success)
+    throw new HttpError(
+      502,
+      "추천 결과를 정리하지 못했어요. 다시 시도해 주세요.",
+    );
+  return json({
+    ...info,
+    recommendations: verifiedRecommendations(
+      input,
+      candidates,
+      parsedRank.data,
     ),
   });
 }
@@ -751,6 +869,8 @@ export default {
       }
       if (path === "/api/relate" && req.method === "POST")
         return await relate(req, env);
+      if (path === "/api/recommend" && req.method === "POST")
+        return await recommend(req, env);
       if (path === "/api/paper-labels" && req.method === "POST")
         return await namePapers(req, env);
       if (path === "/api/analyze" && req.method === "POST")

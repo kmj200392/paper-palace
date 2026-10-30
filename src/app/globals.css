@@ -3977,3 +3977,346 @@ summary::-webkit-details-marker {
     display: none;
   }
 }
+
+/* Discover a next reading path from the user's existing graph. */
+.discovery {
+  max-width: 1020px;
+  margin: 0 auto;
+}
+.discovery-heading {
+  margin-bottom: 28px;
+}
+.discovery-heading .eyebrow {
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+.discovery-heading h1 {
+  font-size: 38px;
+  font-weight: 450;
+  letter-spacing: -1.4px;
+  margin: 12px 0 16px;
+}
+.discovery-heading > p:last-child {
+  font-size: 12px;
+  color: #8b967d;
+}
+.discovery-search {
+  padding: 24px;
+  border: 1px solid #d8dfcd;
+  border-radius: 7px;
+  background: #eef1e7;
+}
+.discovery-search > label {
+  display: block;
+  font-size: 13px;
+  color: #4c6041;
+  font-weight: 550;
+  margin-bottom: 12px;
+}
+.discovery-search textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.discovery-search-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.discovery-search-footer > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #82916f;
+}
+.discovery-cost {
+  font-size: 10px;
+  color: #87917b;
+  margin: 12px 0 0;
+}
+.discovery-scope {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #8d9682;
+  margin: 16px 0 26px;
+}
+.discovery-progress {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 25px 0;
+  color: #627752;
+  font-size: 12px;
+}
+.discovery-progress > svg {
+  flex-shrink: 0;
+}
+.discovery-progress small {
+  display: block;
+  color: #939d88;
+  margin-top: 5px;
+}
+.discovery-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #9ca88d;
+}
+.discovery-empty h2 {
+  font-size: 25px;
+  color: #607451;
+  font-weight: 450;
+  margin: 18px 0 12px;
+}
+.discovery-empty p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.discovery-examples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 25px;
+}
+.discovery-examples button {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #7e8b70;
+}
+.discovery-examples button:hover {
+  background: var(--sage);
+}
+.discovery-result-heading {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+}
+.discovery-result-heading .eyebrow {
+  font-size: 8px;
+}
+.discovery-result-heading h2 {
+  font-size: 23px;
+  font-weight: 450;
+  overflow-wrap: anywhere;
+  margin: 12px 0;
+}
+.discovery-result-heading p {
+  font-size: 12px;
+  color: #728265;
+  line-height: 1.9;
+}
+.discovery-result-heading small {
+  font-size: 10px;
+  color: #99a38c;
+}
+.discovery-updated {
+  padding: 10px 14px;
+  border-left: 2px solid #b5c3a3;
+  background: #edf1e6;
+  color: #7b8b69;
+  font-size: 11px;
+}
+.recommendation-list {
+  display: grid;
+  gap: 20px;
+}
+.recommendation-card {
+  padding: 28px;
+  border: 1px solid #dde2d3;
+  border-radius: 7px;
+  background: var(--surface);
+  min-width: 0;
+}
+.recommendation-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 10px;
+  color: #99a38d;
+}
+.recommendation-number {
+  font-family: var(--serif);
+  font-size: 26px;
+  color: #afbc9d;
+}
+.recommendation-top > a {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #7c8d69;
+}
+.recommendation-card h3 {
+  font-family: var(--serif);
+  font-size: 27px;
+  line-height: 1.25;
+  font-weight: 400;
+  margin: 14px 0 10px;
+  overflow-wrap: anywhere;
+}
+.recommendation-authors {
+  font-size: 11px;
+  color: #8c9681;
+}
+.recommendation-reason {
+  margin-top: 24px;
+}
+.recommendation-card h4 {
+  font-size: 11px;
+  color: #637950;
+  font-weight: 600;
+  margin: 18px 0 7px;
+}
+.recommendation-reason p {
+  font-size: 13px;
+  line-height: 1.95;
+  color: #66765a;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.recommendation-connections {
+  margin: 22px 0;
+  padding: 16px 20px;
+  border-radius: 5px;
+  background: #f1f4eb;
+}
+.recommendation-connections h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+}
+.recommendation-connections > div {
+  margin-top: 14px;
+}
+.recommendation-connections button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4f6940;
+  font-size: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  padding: 0;
+}
+.recommendation-connections button svg {
+  flex-shrink: 0;
+}
+.recommendation-connections > div > span {
+  display: inline-block;
+  margin-left: 9px;
+  font-size: 9px;
+  color: #8c9a7c;
+}
+.recommendation-connections p {
+  font-size: 11px;
+  line-height: 1.85;
+  color: #7e8c70;
+  margin: 5px 0 0;
+}
+.recommendation-abstract {
+  font-size: 11px;
+  color: #909b83;
+  margin-top: 22px;
+}
+.recommendation-abstract summary,
+.discovery-query summary {
+  cursor: pointer;
+}
+.recommendation-abstract p {
+  line-height: 1.9;
+  color: #7d8772;
+  overflow-wrap: anywhere;
+}
+.recommendation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 22px;
+}
+.recommendation-actions > button {
+  margin-left: auto;
+}
+.recommendation-actions label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  font-size: 11px;
+  color: #768769;
+}
+.recommendation-actions input {
+  accent-color: #60774e;
+  width: 14px;
+  height: 14px;
+}
+.recommendation-actions label small {
+  font-size: 9px;
+  color: #98a38b;
+}
+.discovery-query {
+  font-size: 10px;
+  color: #9ca58f;
+}
+.discovery-query code {
+  display: block;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+@media (max-width: 600px) {
+  .discovery-heading h1 {
+    font-size: 28px;
+  }
+  .discovery-search {
+    padding: 15px;
+  }
+  .discovery-search textarea {
+    font-size: 12px;
+  }
+  .discovery-search-footer .button {
+    width: 100%;
+    font-size: 11px;
+  }
+  .discovery-empty {
+    padding: 25px 5px;
+  }
+  .discovery-empty h2 {
+    font-size: 22px;
+  }
+  .recommendation-card {
+    padding: 17px;
+  }
+  .recommendation-card h3 {
+    font-size: 23px;
+  }
+  .recommendation-reason p {
+    font-size: 12px;
+  }
+  .recommendation-connections {
+    padding: 12px;
+  }
+  .recommendation-actions > button {
+    width: 100%;
+  }
+  .recommendation-actions label small {
+    display: block;
+    width: 100%;
+    padding-left: 21px;
+  }
+}
