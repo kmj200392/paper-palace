@@ -34,6 +34,12 @@ import {
   verifiedRecommendations,
 } from "./discovery";
 import type { SearchNamespace } from "./arxiv-search";
+import { authorSourceSchema } from "../src/lib/author-affiliations";
+import {
+  authorInstructions,
+  extractedAuthorsSchema,
+  verifyAuthorDetails,
+} from "./author-affiliations";
 export { ArxivSearch } from "./arxiv-search";
 import {
   randomToken,
@@ -412,6 +418,31 @@ async function relate(req: Request, env: Env) {
       (r) => ids.has(r.source) && ids.has(r.target) && r.source !== r.target,
     ),
   });
+}
+async function authorAffiliations(req: Request, env: Env) {
+  const input = z
+    .object({
+      ...aiRequestFields,
+      papers: z.array(authorSourceSchema).min(1).max(6),
+    })
+    .parse(await body(req, 500000));
+  if (new Set(input.papers.map((p) => p.arxivId)).size !== input.papers.length)
+    throw new HttpError(400, "중복된 논문 정보가 있어요.");
+  const credentials = await resolveAIKey(req, env, input);
+  const schema = z.toJSONSchema(extractedAuthorsSchema, { target: "draft-7" });
+  delete schema.$schema;
+  const result = await modelJSON(
+    credentials,
+    schema,
+    JSON.stringify(input.papers),
+    authorInstructions,
+    "paper_author_affiliations",
+    10000,
+  );
+  const parsed = extractedAuthorsSchema.safeParse(result.value);
+  if (!parsed.success)
+    throw new HttpError(502, "저자·소속 정보를 정리하지 못했어요.");
+  return json({ papers: verifyAuthorDetails(input.papers, parsed.data) });
 }
 async function recommend(req: Request, env: Env) {
   const input = discoveryInputSchema
@@ -871,6 +902,8 @@ export default {
         return await relate(req, env);
       if (path === "/api/recommend" && req.method === "POST")
         return await recommend(req, env);
+      if (path === "/api/author-affiliations" && req.method === "POST")
+        return await authorAffiliations(req, env);
       if (path === "/api/paper-labels" && req.method === "POST")
         return await namePapers(req, env);
       if (path === "/api/analyze" && req.method === "POST")

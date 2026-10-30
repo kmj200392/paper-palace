@@ -4320,3 +4320,121 @@ summary::-webkit-details-marker {
     padding-left: 21px;
   }
 }
+
+.recommendation-author-info {
+  margin: 18px 0 24px;
+  padding: 18px 20px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.recommendation-author-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+.recommendation-author-heading h4 {
+  margin: 0;
+  font-size: 12px;
+  color: var(--green);
+}
+.recommendation-author-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.recommendation-author-info dl {
+  margin: 0;
+  display: grid;
+  gap: 13px;
+}
+.recommendation-author-info dl > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+}
+.recommendation-author-info dt {
+  color: var(--muted);
+  font-size: 11px;
+  padding-top: 3px;
+}
+.recommendation-author-info dd {
+  margin: 0;
+  min-width: 0;
+}
+.recommendation-author-person + .recommendation-author-person {
+  margin-top: 10px;
+}
+.recommendation-author-person strong,
+.recommendation-author-person > span {
+  display: block;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.recommendation-author-person strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.recommendation-author-person > span {
+  color: var(--green);
+  font-size: 12px;
+}
+.recommendation-author-person small {
+  display: inline-block;
+  margin-left: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.recommendation-author-unknown {
+  color: var(--muted);
+  font-size: 12px;
+}
+.recommendation-author-caption {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.recommendation-author-evidence {
+  margin-top: 12px;
+  font-size: 11px;
+}
+.recommendation-author-evidence summary {
+  cursor: pointer;
+  color: var(--green);
+}
+.recommendation-author-evidence blockquote {
+  margin: 10px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  line-height: 1.7;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.recommendation-author-source {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--green);
+  margin-top: 10px;
+}
+@media (max-width: 600px) {
+  .recommendation-author-info {
+    padding: 14px;
+  }
+  .recommendation-author-info dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

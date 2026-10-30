@@ -13,6 +13,12 @@ import { api } from "@/lib/api";
 import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
 import { type Library } from "@/lib/model";
 import {
+  authorDetailsResponseSchema,
+  loadAuthorSources,
+  type AuthorDetails,
+} from "@/lib/author-affiliations";
+import { RecommendationAuthors } from "./recommendation-authors";
+import {
   canonicalPaperId,
   discoveryInput,
   discoveryResultSchema,
@@ -39,6 +45,9 @@ export function PaperDiscovery({
   const [revision, setRevision] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [authorBusy, setAuthorBusy] = useState(false);
+  const [authorFailed, setAuthorFailed] = useState(false);
+  const [authors, setAuthors] = useState<Record<string, AuthorDetails>>({});
   const [connections, setConnections] = useState<Record<string, boolean>>({});
   const request = useRef<AbortController | null>(null);
   const currentRevision = useMemo(
@@ -75,6 +84,34 @@ export function PaperDiscovery({
       setSearchedQuery(prompt);
       setRevision(version);
       setConnections({});
+      setAuthors({});
+      setAuthorFailed(false);
+      if (parsed.data.recommendations.length) {
+        setAuthorBusy(true);
+        try {
+          const sources = await loadAuthorSources(
+            parsed.data.recommendations.map((r) => r.paper),
+            controller.signal,
+          );
+          if (controller.signal.aborted) return;
+          if (sources.length) {
+            const response = await api<unknown>("/author-affiliations", {
+              method: "POST",
+              body: JSON.stringify({ ...settings, papers: sources }),
+              signal: controller.signal,
+            });
+            if (controller.signal.aborted) return;
+            const verified = authorDetailsResponseSchema.parse(response);
+            setAuthors(
+              Object.fromEntries(verified.papers.map((p) => [p.arxivId, p])),
+            );
+          }
+        } catch {
+          if (!controller.signal.aborted) setAuthorFailed(true);
+        } finally {
+          if (!controller.signal.aborted) setAuthorBusy(false);
+        }
+      }
     } catch (e) {
       if (!controller.signal.aborted)
         setError(
@@ -128,7 +165,9 @@ export function PaperDiscovery({
               <Search size={16} />
             )}
             {busy
-              ? "연구 지도에서 찾는 중…"
+              ? authorBusy
+                ? "저자·소속 확인 중…"
+                : "연구 지도에서 찾는 중…"
               : hasAIConnection(settings)
                 ? "논문 추천받기"
                 : "AI 연결하고 시작하기"}
@@ -136,7 +175,7 @@ export function PaperDiscovery({
         </div>
         <p className="discovery-cost">
           {hasAIConnection(settings) ? settings.model : "연결한 AI"} · 검색당 AI
-          최대 2회 호출. 내 API 크레딧을 사용해요.
+          최대 3회 호출(저자·소속 확인 포함). 내 API 크레딧을 사용해요.
         </p>
       </form>
       <p className="discovery-scope">
@@ -155,7 +194,9 @@ export function PaperDiscovery({
         <div className="discovery-progress" role="status">
           <LoaderCircle size={20} className="spin" />
           <span>
-            관심 분야를 해석하고 arXiv 검색 결과를 그래프와 비교하고 있어요.
+            {authorBusy
+              ? "추천 논문의 원문에서 주요 저자와 소속을 확인하고 있어요."
+              : "관심 분야를 해석하고 arXiv 검색 결과를 그래프와 비교하고 있어요."}
             <small>
               잠시 걸릴 수 있어요. 검색 버튼을 다시 누를 필요는 없어요.
             </small>
@@ -260,6 +301,12 @@ export function PaperDiscovery({
                     {rec.paper.authors.slice(0, 3).join(", ")}
                     {rec.paper.authors.length > 3 ? " 외" : ""}
                   </p>
+                  <RecommendationAuthors
+                    paper={rec.paper}
+                    details={authors[rec.paper.arxivId]}
+                    loading={authorBusy}
+                    failed={authorFailed}
+                  />
                   <div className="recommendation-reason">
                     <h4>왜 지금 읽으면 좋을까</h4>
                     <p>{rec.reason}</p>
