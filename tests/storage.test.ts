@@ -28,7 +28,7 @@ const library = (...papers: Paper[]): Library => ({
   ...emptyLibrary(),
   papers,
 });
-test("browser cache -> existing GitHub library merges both papers and graph, then adds browser edits", () => {
+test("explicit imported library merges both papers and graph, then retains tab edits", () => {
   const local = library(paper("1706.03762")),
     remote = library(paper("2106.09685"));
   remote.edges = [

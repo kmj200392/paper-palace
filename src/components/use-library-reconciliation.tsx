@@ -1,11 +1,5 @@
 "use client";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MutableRefObject,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   sectionKeys,
   sectionLabels,
@@ -14,7 +8,6 @@ import {
   type Edge,
 } from "@/lib/model";
 import {
-  libraryContent,
   reconcileLibraries,
   resolveMerge,
   type MergeResult,
@@ -76,14 +69,7 @@ function ConflictPreview({ item }: { item: Paper | Edge }) {
     </div>
   );
 }
-export function useLibraryReconciliation({
-  latest,
-  update,
-}: {
-  latest: MutableRefObject<Library>;
-  update: (library: Library) => void;
-}) {
-  const queue = useRef<Promise<unknown>>(Promise.resolve());
+export function useLibraryReconciliation() {
   const [review, setReview] = useState<{
     result: MergeResult;
     label: string;
@@ -127,28 +113,6 @@ export function useLibraryReconciliation({
     },
     [],
   );
-  const serial = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
-    const result = queue.current.then(task, task);
-    queue.current = result.catch(() => {});
-    return result;
-  }, []);
-  const integrate = useCallback(
-    async (base: Library, incoming: Library) => {
-      let merged = incoming;
-      let before = base;
-      // Edits or an AI response can arrive while a network request is running.
-      while (libraryContent(latest.current) !== libraryContent(before)) {
-        const now = latest.current;
-        merged = await merge(before, now, merged, "동기화 중 도착한 변경");
-        before = now;
-      }
-      if (libraryContent(latest.current) !== libraryContent(merged))
-        update(merged);
-      return latest.current;
-    },
-    [latest, merge, update],
-  );
-
   const conflictDialog = (
     <Dialog
       open={!!review}
@@ -202,9 +166,7 @@ export function useLibraryReconciliation({
     </Dialog>
   );
   return {
-    serial,
     merge,
-    integrate,
     conflictDialog,
   };
 }

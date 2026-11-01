@@ -62,15 +62,18 @@ export async function deleteLocal(key: string) {
     };
   });
 }
-export async function loadLibrary(account: string) {
+export async function loadLegacyLibrary(account: string) {
   const value = await readLocal(`library:${account}`);
   return value ? librarySchema.parse(value) : emptyLibrary();
 }
-export const saveLibrary = (account: string, value: Library) =>
-  writeLocal(`library:${account}`, value);
-export const loadSource = (id: string) => readLocal<Source>(`source:${id}`);
-export const saveSource = (source: Source) =>
-  writeLocal(`source:${source.arxivId}`, source);
+// Source extraction is a bounded, memory-only cache; never an IndexedDB library.
+const sources = new Map<string, Source>();
+export const loadSource = async (id: string) => sources.get(id);
+export const saveSource = async (source: Source) => {
+  sources.delete(source.arxivId);
+  sources.set(source.arxivId, source);
+  if (sources.size > 3) sources.delete(sources.keys().next().value!);
+};
 export function exportLibrary(library: Library) {
   const a = document.createElement("a"),
     url = URL.createObjectURL(

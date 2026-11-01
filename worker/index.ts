@@ -777,8 +777,16 @@ export default {
         return json({ repositories });
       }
       if (path === "/api/library" && req.method === "GET") {
-        const s = await requireSession(req, env),
-          rp = await privateRepo(url.searchParams.get("repo"), s.token);
+        const s = await requireSession(req, env);
+        if (
+          url.searchParams.has("accountId") &&
+          Number(url.searchParams.get("accountId")) !== s.id
+        )
+          throw new HttpError(
+            409,
+            "로그인 계정이 바뀌었어요. 새로고침 후 다시 시도해 주세요.",
+          );
+        const rp = await privateRepo(url.searchParams.get("repo"), s.token);
         const r = await gh(`${rp}/contents/paper-palace/library.json`, s.token);
         if (r.status === 404) return json({ library: null, sha: null });
         if (!r.ok)
@@ -819,11 +827,17 @@ export default {
         const s = await requireSession(req, env),
           data = z
             .object({
+              accountId: z.number().int().positive().optional(),
               repo: z.string(),
               sha: z.string().nullable(),
               library: librarySchema,
             })
             .parse(await body(req));
+        if (data.accountId !== undefined && data.accountId !== s.id)
+          throw new HttpError(
+            409,
+            "로그인 계정이 바뀌었어요. 새로고침 후 다시 시도해 주세요.",
+          );
         const rp = await privateRepo(data.repo, s.token),
           bytes = new TextEncoder().encode(JSON.stringify(data.library));
         if (bytes.length > 3000000)
@@ -851,7 +865,7 @@ export default {
         if (!r.ok)
           throw new HttpError(
             502,
-            "GitHub 저장에 실패했어요. 로컬 데이터는 보존돼요.",
+            "GitHub 저장에 실패했어요. 변경사항은 이 탭에 남아 있어요.",
           );
         return json({ ok: true });
       }

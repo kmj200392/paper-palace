@@ -17,12 +17,14 @@ import {
 
 export function usePaperLabels({
   account,
+  scope = account,
   ai,
   library,
   enabled,
   update,
 }: {
   account: string;
+  scope?: string;
   ai: AISettings;
   library: Library;
   enabled: boolean;
@@ -37,7 +39,7 @@ export function usePaperLabels({
   // Changing accounts or credentials invalidates pending results. Never store keys here on disk.
   const session = useMemo(
     () => ({ attempted: new Set<string>(), failed: false }),
-    [account, ai.provider, ai.model, ai.apiKey, ai.accountId],
+    [account, scope, ai.provider, ai.model, ai.apiKey, ai.accountId],
   );
   const current = useRef({ session, library, enabled, update });
   current.current = { session, library, enabled, update };

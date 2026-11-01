@@ -4403,3 +4403,82 @@ summary::-webkit-details-marker {
     flex-direction: column;
   }
 }
+
+.github-onboarding {
+  max-width: 700px;
+  margin: 12vh auto;
+  padding: 32px 24px;
+  text-align: center;
+}
+.github-onboarding > svg {
+  color: var(--green);
+  margin-bottom: 28px;
+}
+.github-onboarding h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.4;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+.github-onboarding > p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.9;
+  margin: 20px 0 32px;
+}
+.github-onboarding .button-row {
+  justify-content: center;
+}
+.github-save-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.github-save-status > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.github-save-status small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.github-save-status > p {
+  flex-basis: 100%;
+  margin: 0;
+  line-height: 1.8;
+}
+.github-save-status.has-error {
+  border-color: #af8155;
+}
+.legacy-library-backup {
+  margin: 24px 0;
+  font-size: 12px;
+}
+.legacy-library-backup summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.reader-main > .github-save-status {
+  margin: 12px 20px 0;
+}
+@media (max-width: 600px) {
+  .github-onboarding {
+    margin: 6vh auto;
+    padding: 24px 12px;
+  }
+  .github-save-status {
+    padding: 12px;
+  }
+  .reader-main > .github-save-status {
+    margin: 8px 12px 0;
+  }
+}

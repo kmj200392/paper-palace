@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -48,15 +48,14 @@ import {
   librarySchema,
 } from "@/lib/model";
 import {
-  loadLibrary,
-  saveLibrary,
+  loadLegacyLibrary,
   exportLibrary,
   readLocal,
   writeLocal,
 } from "@/lib/storage";
 import { api } from "@/lib/api";
 import { useLibraryReconciliation } from "./use-library-reconciliation";
-import { libraryContent } from "@/lib/reconcile";
+import { useGitHubLibrary } from "./use-github-library";
 import { importPaper } from "@/lib/source";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
@@ -91,7 +90,6 @@ export default function Workspace() {
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
     [account, setAccount] = useState("guest"),
-    [library, setLibraryState] = useState<Library>(emptyLibrary),
     [view, setView] = useState<"library" | "graph" | "discover">("library"),
     [selected, setSelected] = useState<string | null>(null),
     [search, setSearch] = useState(""),
@@ -106,7 +104,6 @@ export default function Workspace() {
     [error, setError] = useState(""),
     [repo, setRepo] = useState(""),
     [repos, setRepos] = useState<{ full_name: string }[]>([]),
-    [syncing, setSyncing] = useState(false),
     [config, setConfig] = useState({
       githubConfigured: false,
       githubAppSlug: "",
@@ -119,26 +116,28 @@ export default function Workspace() {
       note: "",
     });
   const accountAI = useAccountAI(user?.id, setAi);
+  const storage = useLibraryReconciliation();
+  const remote = useGitHubLibrary(user?.id, repo, storage.merge);
+  const empty = useMemo(emptyLibrary, []);
+  const library = remote.library || empty;
+  const libraryReady = !!remote.library;
+  const syncing = remote.status === "saving";
+  const setLibrary = remote.session.update;
   const fileInput = useRef<HTMLInputElement>(null),
     latest = useRef(library),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setLibrary = useCallback(
-    (value: Library | ((l: Library) => Library)) => {
-      const next = typeof value === "function" ? value(latest.current) : value;
-      latest.current = next;
-      setLibraryState(next);
-    },
-    [],
-  );
-  const storage = useLibraryReconciliation({
-    latest,
-    update: setLibrary,
-  });
+  latest.current = library;
+  const [navigating, setNavigating] = useState(false);
+  const [pendingLeave, setPendingLeave] = useState<{
+    label: string;
+    action: () => Promise<void>;
+  } | null>(null);
   const paperLabels = usePaperLabels({
     account,
+    scope: `${account}:${repo}`,
     ai,
     library,
-    enabled: ready && !settingsOpen && !sessionExpired,
+    enabled: libraryReady && !settingsOpen && !sessionExpired && !navigating,
     update: setLibrary,
   });
   const notify = (s: string) => {
@@ -182,19 +181,16 @@ export default function Workspace() {
           );
         if (conf) setConfig(conf);
         const acc = me.user ? `github:${me.user.id}` : "guest";
-        const [lib, savedRepo] = await Promise.all([
-          loadLibrary(acc),
-          readLocal<string>(`repo:${acc}`),
-        ]);
+        // Remember only the connection preference, never a browser library.
+        const savedRepo = me.user
+          ? await readLocal<string>(`repo:${acc}`).catch(() => "")
+          : "";
         if (stopped) return;
         setAccount(acc);
         setUser(me.user);
         setRenewable(me.renewable !== false);
-        setLibrary(lib);
         setRepo(savedRepo || "");
-        // Sign-in opens only this account's cache. Older builds left a handoff
-        // that could repeatedly merge stale guest data during startup. The source
-        // library was already saved before OAuth; keep all IndexedDB data intact.
+        // Retired local handoffs must never be replayed into a GitHub library.
         try {
           sessionStorage.removeItem("paper-palace:login-transfer");
         } catch {
@@ -204,7 +200,7 @@ export default function Workspace() {
         if (params.has("error"))
           setError(
             params.get("error") === "auth_setup"
-              ? "GitHub 로그인 설정을 준비 중이에요. 브라우저 저장으로 먼저 사용할 수 있어요."
+              ? "GitHub 로그인 설정을 준비 중이에요. 잠시 후 다시 시도해 주세요."
               : "GitHub 로그인에 실패했어요. 다시 로그인해 주세요.",
           );
         if (!stopped) setReady(true);
@@ -212,7 +208,7 @@ export default function Workspace() {
         if (stopped) return;
         setBootError((e as Error).message);
         retryPending = true;
-        // Do not load or autosave a guest library while authentication is unknown.
+        // Do not load research data while authentication is unknown.
         retry = setTimeout(
           () => setBootAttempt((n) => n + 1),
           Math.min(30000, 3000 * 2 ** Math.min(bootAttempt, 4)),
@@ -266,21 +262,6 @@ export default function Workspace() {
       document.removeEventListener("visibilitychange", check);
     };
   }, [ready, user]);
-  useEffect(() => {
-    if (!ready) return;
-    const timer = setTimeout(
-      () => saveLibrary(account, library).catch((e) => setError(e.message)),
-      300,
-    );
-    return () => clearTimeout(timer);
-  }, [library, account, ready]);
-  useEffect(() => {
-    const flush = () => {
-      if (ready) saveLibrary(account, latest.current).catch(() => {});
-    };
-    window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
-  }, [ready, account]);
   const refreshRepos = async () => {
     try {
       const data = await api<{ repositories: { full_name: string }[] }>(
@@ -295,7 +276,7 @@ export default function Workspace() {
     if (settingsOpen && user) void refreshRepos();
   }, [settingsOpen, user]);
   const addPaper = async (value: string) => {
-    if (busy) return;
+    if (busy || !libraryReady) return;
     setBusy("논문 정보를 가져오는 중…");
     setError("");
     try {
@@ -317,87 +298,67 @@ export default function Workspace() {
       setBusy("");
     }
   };
-  const login = async () => {
-    if (!ready) return;
+  const leave = async (label: string, action: () => Promise<void>) => {
+    if (navigating) return;
+    setNavigating(true);
     try {
-      await storage.serial(() => saveLibrary(account, latest.current));
-      location.assign("/api/auth/login");
+      await remote.session.flush();
+      await action();
     } catch (e) {
       notify((e as Error).message);
+      if (remote.session.getSnapshot().dirty)
+        setPendingLeave({ label, action });
+    } finally {
+      setNavigating(false);
     }
   };
+  const login = () =>
+    leave("다시 로그인", async () => {
+      location.assign("/api/auth/login");
+    });
   const sync = async () => {
     if (!user || !repo) {
       setSettingsOpen(true);
       return;
     }
-    if (syncing) return;
-    setSyncing(true);
-    const selectedRepo = repo;
-    let remoteSaved: Library | null = null;
     try {
-      await storage.serial(async () => {
-        const remote = await api<{
-          library: Library | null;
-          sha: string | null;
-        }>(`/library?repo=${encodeURIComponent(selectedRepo)}`);
-        const baseline = await readLocal<Library>(
-          `github-base:${account}:${selectedRepo}`,
-        );
-        const before = latest.current;
-        const incoming = remote.library
-          ? librarySchema.parse(remote.library)
-          : emptyLibrary();
-        let merged = await storage.merge(
-          baseline || null,
-          before,
-          incoming,
-          selectedRepo,
-        );
-        merged = await storage.integrate(before, merged);
-        if (
-          !remote.library ||
-          libraryContent(merged) !== libraryContent(remote.library)
-        ) {
-          await api("/library", {
-            method: "PUT",
-            body: JSON.stringify({
-              repo: selectedRepo,
-              sha: remote.sha,
-              library: merged,
-            }),
-          });
-        }
-        remoteSaved = merged;
-        await writeLocal(`github-base:${account}:${selectedRepo}`, merged);
-        await saveLibrary(account, latest.current);
-        await writeLocal(`repo:${account}`, selectedRepo);
-      });
-      const pending =
-        remoteSaved &&
-        libraryContent(remoteSaved) !== libraryContent(latest.current);
-      notify(
-        pending
-          ? "동기화를 마쳤어요. 동기화 중 추가된 변경은 한 번 더 동기화해 주세요."
-          : "GitHub에 동기화했어요.",
-      );
+      if (!libraryReady) await remote.session.open();
+      else await remote.session.sync();
     } catch (e) {
       notify((e as Error).message);
-    } finally {
-      setSyncing(false);
     }
   };
-  const logout = async () => {
-    try {
-      await storage.serial(() => saveLibrary(account, latest.current));
+  const changeRepo = (next: string) =>
+    leave(next ? "저장소 변경" : "저장소 연결 해제", async () => {
+      await writeLocal(`repo:${account}`, next).catch(() => {
+        notify(
+          "저장소 선택을 기억하지 못했어요. 다음 방문에 다시 선택해 주세요.",
+        );
+      });
+      setSelected(null);
+      setView("library");
+      setRepo(next);
+    });
+  const logout = () =>
+    leave("로그아웃", async () => {
       await api("/auth/logout", { method: "POST" });
       setAi((a) => ({ ...a, apiKey: "", accountId: undefined }));
       location.assign("/app/");
+    });
+  const exportLegacy = async (legacyAccount: string) => {
+    try {
+      const old = await loadLegacyLibrary(legacyAccount);
+      if (!old.papers.length && !old.edges.length) {
+        notify("이전 버전에 저장된 자료가 없어요.");
+        return;
+      }
+      exportLibrary(old);
     } catch (e) {
       notify((e as Error).message);
     }
   };
   const importJSON = async (file: File) => {
+    if (!libraryReady) return;
     try {
       if (file.size > 3000000)
         throw new Error("3MB 이하의 JSON 파일을 가져와 주세요.");
@@ -428,7 +389,7 @@ export default function Workspace() {
     }));
     setDeleteId(null);
     setSelected(null);
-    notify("논문을 삭제했어요. GitHub에서도 반영하려면 동기화해 주세요.");
+    notify("논문을 삭제했어요. GitHub에 자동 저장해요.");
   };
   const saveEdge = () => {
     const { source, target, label, note } = edgeDraft;
@@ -601,6 +562,7 @@ export default function Workspace() {
         </div>
         <button
           className="sidebar-item sidebar-add"
+          disabled={!libraryReady || navigating}
           aria-label="논문 추가"
           title="논문 추가"
           onClick={() => {
@@ -639,6 +601,7 @@ export default function Workspace() {
           <button
             className={`sidebar-item ${view === "graph" && !selected ? "active" : ""}`}
             aria-label="지식 지도"
+            disabled={!libraryReady}
             aria-current={view === "graph" && !selected ? "page" : undefined}
             title={`지식 지도 · ${library.edges.length}개 연결`}
             onClick={() => {
@@ -654,6 +617,7 @@ export default function Workspace() {
           <button
             className={`sidebar-item ${view === "discover" && !selected ? "active" : ""}`}
             aria-label="논문 찾기"
+            disabled={!libraryReady}
             aria-current={view === "discover" && !selected ? "page" : undefined}
             title="내 그래프를 바탕으로 논문 찾기"
             onClick={() => {
@@ -682,7 +646,7 @@ export default function Workspace() {
             className="sidebar-item sync-button"
             aria-label={syncing ? "동기화 중" : "GitHub 동기화"}
             title={syncing ? "동기화 중" : "GitHub 동기화"}
-            disabled={syncing}
+            disabled={syncing || navigating || remote.status === "loading"}
             onClick={sync}
           >
             <RefreshCw
@@ -766,6 +730,44 @@ export default function Workspace() {
       )}
       <div className={`workspace-main${selected ? " is-reading" : ""}`}>
         <main id="main" className={selected ? "reader-main" : "library-main"}>
+          {libraryReady && (
+            <div
+              className={`github-save-status ${remote.status === "error" ? "has-error" : ""}`}
+            >
+              <span role="status">
+                <Github size={16} />{" "}
+                {remote.status === "error"
+                  ? "GitHub 저장 확인 필요"
+                  : syncing
+                    ? "GitHub와 동기화 중…"
+                    : remote.dirty
+                      ? "GitHub 저장 대기 중…"
+                      : "GitHub에 저장됨"}
+                <small>{repo}</small>
+              </span>
+              <button
+                className="text-button"
+                disabled={syncing || navigating}
+                onClick={sync}
+              >
+                {remote.status === "error" ? "다시 시도" : "지금 동기화"}
+              </button>
+              {remote.error && (
+                <p role="alert">
+                  {remote.error}
+                  {remote.dirty
+                    ? " 저장하지 못한 변경은 이 탭에만 남아 있어요."
+                    : ""}{" "}
+                  <button
+                    className="text-button"
+                    onClick={() => exportLibrary(library)}
+                  >
+                    JSON으로 백업
+                  </button>
+                </p>
+              )}
+            </div>
+          )}
           {error && !addOpen && (
             <div className="error-banner" role="alert">
               <span>{error}</span>
@@ -778,10 +780,10 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {ready && (
+          {libraryReady && (
             <div hidden={!!paper || view !== "discover"}>
               <PaperDiscovery
-                key={account}
+                key={`${account}:${repo}`}
                 library={library}
                 settings={ai}
                 openSettings={() => setSettingsOpen(true)}
@@ -814,14 +816,59 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {!ready ? (
-            <div className="loading-state">
-              <LoaderCircle size={22} className="spin" /> 나의 연구 공간을 여는
-              중…
-            </div>
+          {!libraryReady ? (
+            <section className="github-onboarding">
+              {remote.status === "loading" ? (
+                <LoaderCircle size={32} className="spin" />
+              ) : (
+                <Github size={36} />
+              )}
+              <p className="eyebrow">YOUR PAPERS, YOUR GITHUB</p>
+              <h1>
+                {!user
+                  ? "GitHub에 연구 공간을 열어 보세요."
+                  : !repo
+                    ? "저장소를 연결해 주세요."
+                    : remote.status === "error"
+                      ? "자료를 불러오지 못했어요."
+                      : "GitHub에서 자료를 불러오는 중…"}
+              </h1>
+              <p>
+                {!user
+                  ? "로그인하고 비공개 저장소를 연결하면 논문·메모·그래프를 어디서든 이어갈 수 있어요."
+                  : !repo
+                    ? "선택한 저장소에서 자료를 불러오고, 변경사항을 자동으로 저장해요."
+                    : remote.error || "저장된 라이브러리를 확인하고 있어요."}
+              </p>
+              {!user ? (
+                <button
+                  className="button primary"
+                  onClick={login}
+                  disabled={navigating || !config.githubConfigured}
+                >
+                  <Github size={18} /> GitHub으로 시작하기
+                </button>
+              ) : (
+                remote.status !== "loading" && (
+                  <div className="button-row">
+                    {repo && (
+                      <button className="button primary" onClick={sync}>
+                        다시 불러오기
+                      </button>
+                    )}
+                    <button
+                      className="button secondary"
+                      onClick={() => setSettingsOpen(true)}
+                    >
+                      GitHub 연결 설정
+                    </button>
+                  </div>
+                )
+              )}
+            </section>
           ) : paper ? (
             <Reader
-              key={paper.id}
+              key={`${repo}:${paper.id}`}
               paper={paper}
               settings={ai}
               openSettings={() => setSettingsOpen(true)}
@@ -874,23 +921,6 @@ export default function Workspace() {
                   {String(library.papers.length).padStart(2, "0")}
                   <small>PAPERS</small>
                 </span>
-              </div>
-              <div className="local-notice storage-overview">
-                <span>
-                  <span className="status-dot" />
-                  브라우저에 저장 중
-                  <small>
-                    {repo && user
-                      ? `GitHub · ${repo} · 수동 동기화`
-                      : "GitHub를 연결하면 다른 기기에서도 이어갈 수 있어요."}
-                  </small>
-                </span>
-                <button
-                  className="text-button"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  GitHub 연결 관리 <ArrowUpRight size={13} />
-                </button>
               </div>
               <div className="library-tools">
                 <label className="search-field">
@@ -1325,13 +1355,14 @@ export default function Workspace() {
                 <select
                   id="repo-select"
                   value={repo}
-                  disabled={syncing}
-                  onChange={(e) => {
-                    setRepo(e.target.value);
-                    void writeLocal(`repo:${account}`, e.target.value).catch(
-                      (e) => notify(e.message),
-                    );
-                  }}
+                  disabled={
+                    syncing ||
+                    navigating ||
+                    !!busy ||
+                    suggesting ||
+                    paperLabels.busy
+                  }
+                  onChange={(e) => void changeRepo(e.target.value)}
                 >
                   <option value="">비공개 저장소 선택</option>
                   {repo && !repos.some((r) => r.full_name === repo) && (
@@ -1352,13 +1383,15 @@ export default function Workspace() {
                 </button>
               </div>
               <p className="form-hint">
-                선택한 GitHub 저장소와 현재 라이브러리의 자료를 합칩니다. 원격
-                변경을 가져오거나 보낼 때 동기화 버튼을 눌러 주세요. 원문 파일과
-                API 키는 저장하지 않아요.
+                논문·요약·메모·그래프는 이 저장소에 자동 저장해요. 다른 기기의
+                변경은 새로고침하거나 동기화 버튼을 눌러 불러올 수 있어요. 원문
+                파일과 API 키는 GitHub에 저장하지 않아요.
               </p>
               <button
                 className="button small"
-                disabled={!repo || syncing}
+                disabled={
+                  !repo || syncing || navigating || remote.status === "loading"
+                }
                 onClick={sync}
               >
                 <RefreshCw size={15} className={syncing ? "spin" : ""} />
@@ -1367,47 +1400,12 @@ export default function Workspace() {
               {repo && (
                 <button
                   className="text-button local-import"
-                  disabled={syncing}
-                  onClick={async () => {
-                    try {
-                      await writeLocal(`repo:${account}`, "");
-                      setRepo("");
-                      notify(
-                        "GitHub 저장소 연결을 해제했어요. 현재 자료와 GitHub의 파일은 유지돼요.",
-                      );
-                    } catch (e) {
-                      notify((e as Error).message);
-                    }
-                  }}
+                  disabled={syncing || navigating}
+                  onClick={() => void changeRepo("")}
                 >
                   <Unplug size={14} /> GitHub 저장소 연결 해제
                 </button>
               )}
-              <button
-                className="text-button local-import"
-                onClick={async () => {
-                  try {
-                    const guest = await loadLibrary("guest");
-                    await storage.serial(async () => {
-                      const before = latest.current;
-                      const merged = await storage.merge(
-                        null,
-                        before,
-                        guest,
-                        "로그인 전 라이브러리",
-                      );
-                      await storage.integrate(before, merged);
-                    });
-                    notify(
-                      `로그인 전에 저장한 ${guest.papers.length}편을 가져왔어요.`,
-                    );
-                  } catch (e) {
-                    notify((e as Error).message);
-                  }
-                }}
-              >
-                로그인 전에 이 브라우저에 저장한 자료 가져오기
-              </button>
             </>
           ) : (
             <>
@@ -1423,13 +1421,12 @@ export default function Workspace() {
                 <Github size={17} /> GitHub으로 로그인
               </button>
               <p className="form-hint">
-                로그인 전 자료는 이 브라우저에 남아요. 로그인 후 설정에서 직접
-                가져올 수 있어요.
+                연구 자료는 GitHub에만 보관해요. 먼저 로그인하고 저장소를 연결해
+                주세요.
               </p>
               {!config.githubConfigured && (
                 <p className="form-hint">
-                  로그인 연결을 준비 중입니다. 지금은 브라우저 저장과 JSON
-                  내보내기를 사용할 수 있어요.
+                  로그인 연결을 준비 중입니다. 잠시 후 다시 시도해 주세요.
                 </p>
               )}
             </>
@@ -1444,12 +1441,14 @@ export default function Workspace() {
             <button
               className="button small"
               onClick={() => exportLibrary(library)}
+              disabled={!libraryReady}
             >
               <ArrowDownToLine size={15} /> JSON 내보내기
             </button>
             <button
               className="button small"
               onClick={() => fileInput.current?.click()}
+              disabled={!libraryReady}
             >
               <ArrowUpFromLine size={15} /> JSON 가져오기
             </button>
@@ -1458,6 +1457,7 @@ export default function Workspace() {
               className="sr-only"
               type="file"
               aria-label="라이브러리 JSON 파일 가져오기"
+              disabled={!libraryReady}
               accept=".json,application/json"
               onChange={(e) => {
                 if (e.target.files?.[0]) void importJSON(e.target.files[0]);
@@ -1465,6 +1465,29 @@ export default function Workspace() {
             />
           </div>
         </section>
+        {user && (
+          <details className="legacy-library-backup">
+            <summary>이전 버전 자료 백업</summary>
+            <p className="form-hint">
+              이전 버전에서 브라우저에만 저장했던 자료를 JSON 파일로 꺼낼 수
+              있어요. GitHub 자료에 자동으로 합치지 않아요.
+            </p>
+            <div className="button-row">
+              <button
+                className="button small"
+                onClick={() => void exportLegacy(account)}
+              >
+                이전 계정 자료 내보내기
+              </button>
+              <button
+                className="button small"
+                onClick={() => void exportLegacy("guest")}
+              >
+                이전 비로그인 자료 내보내기
+              </button>
+            </div>
+          </details>
+        )}
         <button
           className="button primary full"
           onClick={() => {
@@ -1584,6 +1607,43 @@ export default function Workspace() {
           </button>
         </div>
       )}
+      <Dialog
+        open={!!pendingLeave}
+        onClose={() => setPendingLeave(null)}
+        title="아직 GitHub에 저장하지 못했어요"
+      >
+        <p className="dialog-description">
+          저장하지 않은 변경이 이 탭에 남아 있어요. 다시 저장하거나 JSON으로
+          백업한 후 이동할 수 있어요.
+        </p>
+        <div className="button-row">
+          <button
+            className="button secondary"
+            onClick={() => exportLibrary(library)}
+          >
+            JSON으로 백업
+          </button>
+          <button className="button" onClick={() => setPendingLeave(null)}>
+            계속 작업하기
+          </button>
+          <button
+            className="button danger"
+            onClick={async () => {
+              const next = pendingLeave;
+              if (!next) return;
+              remote.session.discard();
+              setPendingLeave(null);
+              try {
+                await next.action();
+              } catch (e) {
+                notify((e as Error).message);
+              }
+            }}
+          >
+            미저장 변경 버리고 {pendingLeave?.label}
+          </button>
+        </div>
+      </Dialog>
       {storage.conflictDialog}
     </div>
   );

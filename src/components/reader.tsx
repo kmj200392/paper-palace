@@ -389,7 +389,7 @@ export function Reader({
                   placeholder="이 논문은 내 연구와 어떻게 이어질까?\n비교해 보고 싶은 방법이나 남은 질문을 적어 보세요."
                 />
                 <span className="muted">
-                  <Check size={12} /> 자동 저장 · 저장 위치는 연결 및 설정에서
+                  <Check size={12} /> GitHub에 자동 저장 · 저장 상태는 상단에서
                   확인
                 </span>
               </div>
