@@ -192,47 +192,13 @@ export default function Workspace() {
         setRenewable(me.renewable !== false);
         setLibrary(lib);
         setRepo(savedRepo || "");
-        // The explicit login button carries this tab's library through OAuth.
-        // A normal account switch never imports another account's cache implicitly.
-        const transferKey = sessionStorage.getItem(
-          "paper-palace:login-transfer",
-        );
-        if (me.user && transferKey) {
-          const transfer = await readLocal<{
-            library: Library;
-            createdAt: number;
-          }>(transferKey);
-          let transferred = false;
-          if (transfer && Date.now() - transfer.createdAt < 60 * 60 * 1000) {
-            try {
-              const merged = await storage.merge(
-                null,
-                lib,
-                librarySchema.parse(transfer.library),
-                "로그인 전 라이브러리",
-              );
-              await saveLibrary(acc, merged);
-              setLibrary(merged);
-              transferred = true;
-              setSettingsOpen(true);
-              notify(
-                "로그인 전 자료를 이어받았어요. 저장소를 선택하고 동기화하세요.",
-              );
-            } catch (e) {
-              setError(
-                (e as Error).message +
-                  " 새로고침하면 로그인 전 연결을 다시 이어받을 수 있어요.",
-              );
-            }
-          }
-          if (
-            transferred ||
-            !transfer ||
-            Date.now() - transfer.createdAt >= 60 * 60 * 1000
-          ) {
-            sessionStorage.removeItem("paper-palace:login-transfer");
-            await writeLocal(transferKey, null);
-          }
+        // Sign-in opens only this account's cache. Older builds left a handoff
+        // that could repeatedly merge stale guest data during startup. The source
+        // library was already saved before OAuth; keep all IndexedDB data intact.
+        try {
+          sessionStorage.removeItem("paper-palace:login-transfer");
+        } catch {
+          // Session storage can be disabled without blocking sign-in.
         }
         const params = new URLSearchParams(location.search);
         if (params.has("error"))
@@ -354,15 +320,7 @@ export default function Workspace() {
   const login = async () => {
     if (!ready) return;
     try {
-      await storage.serial(async () => {
-        await saveLibrary(account, latest.current);
-        const key = `login-transfer:${crypto.randomUUID()}`;
-        await writeLocal(key, {
-          library: latest.current,
-          createdAt: Date.now(),
-        });
-        sessionStorage.setItem("paper-palace:login-transfer", key);
-      });
+      await storage.serial(() => saveLibrary(account, latest.current));
       location.assign("/api/auth/login");
     } catch (e) {
       notify((e as Error).message);
@@ -608,7 +566,6 @@ export default function Workspace() {
             </button>
           </>
         )}
-        {storage.conflictDialog}
       </main>
     );
   return (
@@ -1466,8 +1423,8 @@ export default function Workspace() {
                 <Github size={17} /> GitHub으로 로그인
               </button>
               <p className="form-hint">
-                이 브라우저에 저장한 논문과 메모를 로그인 후에도 이어서
-                사용해요.
+                로그인 전 자료는 이 브라우저에 남아요. 로그인 후 설정에서 직접
+                가져올 수 있어요.
               </p>
               {!config.githubConfigured && (
                 <p className="form-hint">
