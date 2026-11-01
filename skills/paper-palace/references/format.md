@@ -30,8 +30,8 @@ An edge is `{id, source, target, label, note, origin, updatedAt}`. Use a UUID as
 
 No credentials, authentication tokens, source HTML or PDF bytes belong in this file. Keep the file under 3MB for web/GitHub sync. Canonical full validation is `librarySchema` in the app repository.
 
-## Connected local folder
+## Connected GitHub repository
 
-The web app uses `<chosen-folder>/paper-palace/library.json`, the same relative path as the GitHub data repository. If authorized to update this source, read it immediately before editing, preserve other records and tombstones, and update each changed item's `updatedAt`. Write a validated complete JSON document (prefer an atomic file replacement). To delete a paper or edge, add its ID and current UTC time to `deleted`; removing an array entry alone is not a synchronized deletion. Never modify `.git`, credentials, or unrelated files as part of library editing.
+The web app syncs `paper-palace/library.json` in the selected private GitHub repository. If authorized to update this source (or its local clone), read the latest revision immediately before editing, preserve other records and tombstones, and update each changed item's `updatedAt`. Write a validated complete JSON document. To delete a paper or edge, add its ID and current UTC time to `deleted`; removing an array entry alone is not a synchronized deletion. Never modify `.git`, credentials, or unrelated files as part of library editing.
 
-The open web app checks the folder on focus and periodically; users can also press “폴더 다시 동기화”. Its connection baseline detects concurrent edits and asks the user which version to keep. GitHub sync remains an explicit user action. Browser permission or a closed tab can pause local sync; do not claim the web UI or remote repository updated merely because a local file write succeeded.
+GitHub sync remains an explicit user action. The web app keeps a common baseline and asks the user which version to keep when both sides edited the same item. Local clones are not connected directly to the web app: a local file edit must be pushed to the authorized repository before the user syncs in Paper Palace. Do not claim the web UI or remote repository updated merely because a local file write succeeded. JSON import remains available for files from earlier folder connections.

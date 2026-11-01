@@ -497,8 +497,8 @@ export function AIConnection({
       )}
       <p className="form-hint">
         비밀번호 보관함은 새로고침 후 다시 잠금을 풀어 주세요. 저장된 키는
-        GitHub·로컬 폴더·JSON 내보내기에 포함되지 않아요. 분석할 때는
-        Cloudflare를 거쳐 선택한 AI 제공자에게 키와 논문 텍스트를 전달합니다.
+        GitHub·JSON 내보내기에 포함되지 않아요. 분석할 때는 Cloudflare를 거쳐
+        선택한 AI 제공자에게 키와 논문 텍스트를 전달합니다.
       </p>
       <a
         className="text-link small"

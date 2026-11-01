@@ -3636,31 +3636,7 @@ summary::-webkit-details-marker {
   color: #6c8754;
 }
 
-/* Storage connections share one research library. */
-.folder-connection {
-  padding: 16px;
-  margin: 14px 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f1f3eb;
-  overflow-wrap: anywhere;
-}
-.folder-connection strong {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.folder-connection code {
-  display: block;
-  margin: 9px 0;
-  font-size: 11px;
-}
-.folder-connection p {
-  font-size: 11px;
-  color: var(--sage-dark, #536745);
-  margin: 0;
-}
+/* Browser cache and GitHub share one research library. */
 .storage-overview > span {
   flex-wrap: wrap;
   min-width: 0;
@@ -3672,9 +3648,6 @@ summary::-webkit-details-marker {
 }
 .storage-overview > button {
   flex-shrink: 0;
-}
-.status-dot.needs-attention {
-  background: #a96c32;
 }
 .merge-conflict {
   padding: 14px;

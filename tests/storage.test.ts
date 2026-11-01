@@ -6,11 +6,6 @@ import {
   reconcileLibraries,
   resolveMerge,
 } from "../src/lib/reconcile";
-import {
-  readFolder,
-  writeFolder,
-  type DirectoryHandle,
-} from "../src/lib/folder";
 
 const t = "2026-10-29T00:00:00.000Z";
 const paper = (id: string, notes = ""): Paper => ({
@@ -33,72 +28,7 @@ const library = (...papers: Paper[]): Library => ({
   ...emptyLibrary(),
   papers,
 });
-function disk(initial: string | null = null) {
-  let raw = initial,
-    writes = 0;
-  const missing = () => new DOMException("Missing", "NotFoundError");
-  const file = {
-    getFile: async () => {
-      if (raw === null) throw missing();
-      return new File([raw], "library.json");
-    },
-    createWritable: async () => {
-      let pending = "";
-      return {
-        write: async (v: string) => {
-          pending = v;
-        },
-        close: async () => {
-          raw = pending;
-          writes++;
-        },
-        abort: async () => {},
-      };
-    },
-  };
-  const directory = {
-    getFileHandle: async (_name: string, options?: { create?: boolean }) => {
-      if (raw === null && !options?.create) throw missing();
-      return file;
-    },
-  };
-  const handle = {
-    name: "Research",
-    getDirectoryHandle: async () => directory,
-  } as unknown as DirectoryHandle;
-  return {
-    handle,
-    raw: () => raw,
-    writes: () => writes,
-    external: (v: string) => {
-      raw = v;
-    },
-  };
-}
-
-test("GitHub-only -> empty folder -> remote change -> folder update preserves the library", async () => {
-  const remote = library(paper("1706.03762", "GitHub note"));
-  const folder = disk();
-  const snapshot = await readFolder(folder.handle);
-  const combined = resolveMerge(
-    reconcileLibraries(null, remote, snapshot.library),
-  );
-  await writeFolder(folder.handle, snapshot, combined);
-  assert.equal(
-    (await readFolder(folder.handle)).library.papers[0].notes,
-    "GitHub note",
-  );
-  const changed = structuredClone(remote);
-  changed.papers[0].notes = "edited on another device";
-  const synced = resolveMerge(reconcileLibraries(remote, combined, changed));
-  await writeFolder(folder.handle, await readFolder(folder.handle), synced);
-  assert.equal(
-    (await readFolder(folder.handle)).library.papers[0].notes,
-    "edited on another device",
-  );
-});
-
-test("local-only -> existing GitHub library merges both papers and graph, then adds local edits", () => {
+test("browser cache -> existing GitHub library merges both papers and graph, then adds browser edits", () => {
   const local = library(paper("1706.03762")),
     remote = library(paper("2106.09685"));
   remote.edges = [
@@ -194,45 +124,4 @@ test("a timestamp-only change does not trigger a conflict and a second sync is i
     libraryContent(resolveMerge(reconcileLibraries(merged, merged, remote))),
     libraryContent(merged),
   );
-});
-
-test("existing folder contents merge into a populated library; unrelated entries survive", async () => {
-  const folder = disk(JSON.stringify(library(paper("2", "on disk"))));
-  const before = await readFolder(folder.handle);
-  const merged = resolveMerge(
-    reconcileLibraries(null, library(paper("1", "in browser")), before.library),
-  );
-  await writeFolder(folder.handle, before, merged);
-  assert.deepEqual(
-    (await readFolder(folder.handle)).library.papers.map((p) => p.notes),
-    ["in browser", "on disk"],
-  );
-});
-
-test("malformed, oversized, and externally changed files are never silently replaced", async () => {
-  for (const raw of ["not json", '{"version":9}', " ".repeat(3_000_001)]) {
-    const folder = disk(raw);
-    await assert.rejects(readFolder(folder.handle));
-    assert.equal(folder.raw(), raw);
-    assert.equal(folder.writes(), 0);
-  }
-  const original = JSON.stringify(library(paper("1")));
-  const folder = disk(original),
-    snapshot = await readFolder(folder.handle);
-  const external = JSON.stringify(library(paper("1", "edited during review")));
-  folder.external(external);
-  await assert.rejects(
-    writeFolder(folder.handle, snapshot, library(paper("1", "browser"))),
-    /변경/,
-  );
-  assert.equal(folder.raw(), external);
-  assert.equal(folder.writes(), 0);
-});
-
-test("folder output strips unknown fields including credentials and preserves schema", async () => {
-  const folder = disk();
-  const data = { ...library(paper("1")), apiKey: "test-only-secret" };
-  await writeFolder(folder.handle, await readFolder(folder.handle), data);
-  assert.equal(folder.raw()!.includes("test-only-secret"), false);
-  assert.equal((await readFolder(folder.handle)).library.papers.length, 1);
 });

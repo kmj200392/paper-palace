@@ -8,7 +8,6 @@ import {
   Check,
   ChevronRight,
   FolderGit2,
-  FolderOpen,
   Unplug,
   Github,
   KeyRound,
@@ -56,9 +55,8 @@ import {
   writeLocal,
 } from "@/lib/storage";
 import { api } from "@/lib/api";
-import { useStorageConnections } from "./use-storage-connections";
+import { useLibraryReconciliation } from "./use-library-reconciliation";
 import { libraryContent } from "@/lib/reconcile";
-import { type FolderConnection } from "@/lib/folder";
 import { importPaper } from "@/lib/source";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
@@ -132,9 +130,7 @@ export default function Workspace() {
     },
     [],
   );
-  const storage = useStorageConnections({
-    account,
-    ready,
+  const storage = useLibraryReconciliation({
     latest,
     update: setLibrary,
   });
@@ -145,18 +141,6 @@ export default function Workspace() {
     enabled: ready && !settingsOpen && !sessionExpired,
     update: setLibrary,
   });
-  const [connectingFolder, setConnectingFolder] = useState(false);
-  const storageAction = async (action: () => Promise<unknown>) => {
-    setConnectingFolder(true);
-    try {
-      await action();
-    } catch (e) {
-      if (!(e instanceof Error && e.name === "AbortError"))
-        notify((e as Error).message);
-    } finally {
-      setConnectingFolder(false);
-    }
-  };
   const notify = (s: string) => {
     setToast(s);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -208,7 +192,7 @@ export default function Workspace() {
         setRenewable(me.renewable !== false);
         setLibrary(lib);
         setRepo(savedRepo || "");
-        // The explicit login button carries this tab's library and folder through OAuth.
+        // The explicit login button carries this tab's library through OAuth.
         // A normal account switch never imports another account's cache implicitly.
         const transferKey = sessionStorage.getItem(
           "paper-palace:login-transfer",
@@ -216,7 +200,6 @@ export default function Workspace() {
         if (me.user && transferKey) {
           const transfer = await readLocal<{
             library: Library;
-            folder: FolderConnection | null;
             createdAt: number;
           }>(transferKey);
           let transferred = false;
@@ -229,8 +212,6 @@ export default function Workspace() {
                 "로그인 전 라이브러리",
               );
               await saveLibrary(acc, merged);
-              if (transfer.folder)
-                await writeLocal(`folder:${acc}`, transfer.folder);
               setLibrary(merged);
               transferred = true;
               setSettingsOpen(true);
@@ -374,13 +355,10 @@ export default function Workspace() {
     if (!ready) return;
     try {
       await storage.serial(async () => {
-        if (storage.folder) await storage.flushFolder();
         await saveLibrary(account, latest.current);
         const key = `login-transfer:${crypto.randomUUID()}`;
         await writeLocal(key, {
           library: latest.current,
-          folder:
-            (await readLocal<FolderConnection>(`folder:${account}`)) || null,
           createdAt: Date.now(),
         });
         sessionStorage.setItem("paper-palace:login-transfer", key);
@@ -401,7 +379,6 @@ export default function Workspace() {
     let remoteSaved: Library | null = null;
     try {
       await storage.serial(async () => {
-        if (storage.folder) await storage.flushFolder();
         const remote = await api<{
           library: Library | null;
           sha: string | null;
@@ -437,16 +414,6 @@ export default function Workspace() {
         await writeLocal(`github-base:${account}:${selectedRepo}`, merged);
         await saveLibrary(account, latest.current);
         await writeLocal(`repo:${account}`, selectedRepo);
-        if (storage.folder) {
-          try {
-            await storage.flushFolder();
-          } catch (e) {
-            throw new Error(
-              "GitHub에는 동기화했지만 폴더 저장은 완료하지 못했어요. " +
-                (e as Error).message,
-            );
-          }
-        }
       });
       const pending =
         remoteSaved &&
@@ -454,9 +421,7 @@ export default function Workspace() {
       notify(
         pending
           ? "동기화를 마쳤어요. 동기화 중 추가된 변경은 한 번 더 동기화해 주세요."
-          : storage.folder
-            ? "GitHub와 로컬 폴더에 동기화했어요."
-            : "GitHub에 동기화했어요.",
+          : "GitHub에 동기화했어요.",
       );
     } catch (e) {
       notify((e as Error).message);
@@ -466,10 +431,7 @@ export default function Workspace() {
   };
   const logout = async () => {
     try {
-      await storage.serial(async () => {
-        if (storage.folder) await storage.flushFolder();
-      });
-      await saveLibrary(account, latest.current);
+      await storage.serial(() => saveLibrary(account, latest.current));
       await api("/auth/logout", { method: "POST" });
       setAi((a) => ({ ...a, apiKey: "", accountId: undefined }));
       location.assign("/app/");
@@ -847,18 +809,6 @@ export default function Workspace() {
       )}
       <div className={`workspace-main${selected ? " is-reading" : ""}`}>
         <main id="main" className={selected ? "reader-main" : "library-main"}>
-          {storage.folder &&
-            (storage.status === "permission" || storage.status === "error") && (
-              <div className="error-banner" role="alert">
-                <span>{storage.message || "폴더 저장을 확인해 주세요."}</span>
-                <button
-                  className="text-button"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  저장 위치 관리
-                </button>
-              </div>
-            )}
           {error && !addOpen && (
             <div className="error-banner" role="alert">
               <span>{error}</span>
@@ -970,23 +920,19 @@ export default function Workspace() {
               </div>
               <div className="local-notice storage-overview">
                 <span>
-                  <span
-                    className={`status-dot ${storage.status === "error" || storage.status === "permission" ? "needs-attention" : ""}`}
-                  />
-                  {storage.folder
-                    ? `${storage.folder.handle.name} · ${storage.status === "saved" ? "폴더 저장됨" : storage.status === "saving" ? "폴더 저장 중" : storage.status === "permission" ? "재연결 필요" : storage.status === "error" ? "폴더 저장 확인 필요" : "폴더 확인 중"}`
-                    : "브라우저에 저장 중"}
+                  <span className="status-dot" />
+                  브라우저에 저장 중
                   <small>
                     {repo && user
                       ? `GitHub · ${repo} · 수동 동기화`
-                      : "폴더와 GitHub를 언제든 함께 연결할 수 있어요."}
+                      : "GitHub를 연결하면 다른 기기에서도 이어갈 수 있어요."}
                   </small>
                 </span>
                 <button
                   className="text-button"
                   onClick={() => setSettingsOpen(true)}
                 >
-                  저장 위치 관리 <ArrowUpRight size={13} />
+                  GitHub 연결 관리 <ArrowUpRight size={13} />
                 </button>
               </div>
               <div className="library-tools">
@@ -1370,86 +1316,6 @@ export default function Workspace() {
         {settingsOpen && (
           <AIConnection ai={ai} setAi={setAi} user={user} account={accountAI} />
         )}
-        <section className="settings-section folder-settings">
-          <h3>
-            <FolderOpen size={18} /> 로컬 폴더
-          </h3>
-          <p>
-            논문·요약·메모·그래프를 내 컴퓨터에 저장하세요. GitHub와 함께
-            연결하면 같은 라이브러리를 다른 기기에서도 이어갈 수 있어요.
-          </p>
-          {storage.folder && (
-            <div className="folder-connection">
-              <strong>
-                <FolderOpen size={16} /> {storage.folder.handle.name}
-              </strong>
-              <code>paper-palace/library.json</code>
-              <p role="status">
-                {storage.status === "saved"
-                  ? "폴더 저장됨 · 변경 사항 자동 저장"
-                  : storage.status === "saving"
-                    ? "폴더에 저장하는 중…"
-                    : storage.status === "permission"
-                      ? "폴더 접근 권한을 다시 허용해 주세요."
-                      : storage.status === "error"
-                        ? "폴더 저장이 멈췄어요. 브라우저의 자료는 유지돼요."
-                        : "폴더 연결 확인 중…"}
-              </p>
-            </div>
-          )}
-          {storage.message && (
-            <p className="inline-error" role="alert">
-              {storage.message}
-            </p>
-          )}
-          <div className="button-row">
-            <button
-              className="button small"
-              disabled={
-                !storage.supported ||
-                !storage.loaded ||
-                connectingFolder ||
-                syncing
-              }
-              onClick={() => storageAction(storage.attach)}
-            >
-              <FolderOpen size={15} />
-              {storage.folder ? "다른 폴더 연결" : "로컬 폴더 연결"}
-            </button>
-            {storage.folder && (
-              <>
-                <button
-                  className="button small"
-                  disabled={connectingFolder || syncing}
-                  onClick={() => storageAction(storage.reconnect)}
-                >
-                  <RefreshCw size={15} />
-                  {storage.status === "permission"
-                    ? "폴더 다시 연결"
-                    : "폴더 다시 동기화"}
-                </button>
-                <button
-                  className="text-button"
-                  disabled={connectingFolder || syncing}
-                  onClick={() => storageAction(storage.detach)}
-                >
-                  <Unplug size={14} /> 폴더 연결 해제
-                </button>
-              </>
-            )}
-          </div>
-          <p className="form-hint">
-            현재 자료와 폴더 안의 기존 자료를 합쳐요. 페이지가 열려 있을 때 자동
-            저장하고 외부 변경을 확인해요. 연결을 해제해도 파일과 현재
-            라이브러리는 남아요. PDF와 API 키는 폴더에 저장하지 않아요.
-          </p>
-          {!storage.supported && (
-            <p className="inline-error">
-              이 브라우저는 폴더 연결을 지원하지 않아요. Chrome·Edge에서 열거나
-              GitHub / JSON 가져오기·내보내기를 사용해 주세요.
-            </p>
-          )}
-        </section>
         <section className="settings-section">
           <h3>
             <FolderGit2 size={18} /> GitHub 저장소
@@ -1502,7 +1368,7 @@ export default function Workspace() {
                 <select
                   id="repo-select"
                   value={repo}
-                  disabled={syncing || connectingFolder}
+                  disabled={syncing}
                   onChange={(e) => {
                     setRepo(e.target.value);
                     void writeLocal(`repo:${account}`, e.target.value).catch(
@@ -1529,13 +1395,13 @@ export default function Workspace() {
                 </button>
               </div>
               <p className="form-hint">
-                선택한 저장소·현재 라이브러리·연결한 폴더의 자료를 합칩니다.
-                원격 변경을 가져오거나 보낼 때 동기화 버튼을 눌러 주세요. 원문
-                파일과 API 키는 저장하지 않아요.
+                선택한 GitHub 저장소와 현재 라이브러리의 자료를 합칩니다. 원격
+                변경을 가져오거나 보낼 때 동기화 버튼을 눌러 주세요. 원문 파일과
+                API 키는 저장하지 않아요.
               </p>
               <button
                 className="button small"
-                disabled={!repo || syncing || connectingFolder}
+                disabled={!repo || syncing}
                 onClick={sync}
               >
                 <RefreshCw size={15} className={syncing ? "spin" : ""} />
@@ -1544,13 +1410,13 @@ export default function Workspace() {
               {repo && (
                 <button
                   className="text-button local-import"
-                  disabled={syncing || connectingFolder}
+                  disabled={syncing}
                   onClick={async () => {
                     try {
                       await writeLocal(`repo:${account}`, "");
                       setRepo("");
                       notify(
-                        "GitHub 저장소 연결을 해제했어요. 현재 자료와 폴더 파일은 유지돼요.",
+                        "GitHub 저장소 연결을 해제했어요. 현재 자료와 GitHub의 파일은 유지돼요.",
                       );
                     } catch (e) {
                       notify((e as Error).message);
@@ -1595,12 +1461,13 @@ export default function Workspace() {
               <button
                 className="button primary"
                 onClick={login}
-                disabled={!ready || connectingFolder}
+                disabled={!ready}
               >
                 <Github size={17} /> GitHub으로 로그인
               </button>
               <p className="form-hint">
-                현재 논문과 연결한 로컬 폴더를 로그인 후에도 이어서 사용해요.
+                이 브라우저에 저장한 논문과 메모를 로그인 후에도 이어서
+                사용해요.
               </p>
               {!config.githubConfigured && (
                 <p className="form-hint">
