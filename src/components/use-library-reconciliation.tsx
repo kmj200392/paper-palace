@@ -13,9 +13,10 @@ import {
   type MergeResult,
 } from "@/lib/reconcile";
 import { Dialog } from "./dialog";
+import { paperDisplayId } from "@/lib/paper-reference";
 
 function ConflictPreview({ item }: { item: Paper | Edge }) {
-  if (!("arxivId" in item))
+  if (!("title" in item))
     return (
       <div className="conflict-content">
         <p>
@@ -44,7 +45,7 @@ function ConflictPreview({ item }: { item: Paper | Edge }) {
         <p>
           {item.title}
           <br />
-          arXiv:{item.arxivId} · {item.published}
+          {paperDisplayId(item)} · {item.published}
           <br />
           {item.authors.join(", ")}
         </p>

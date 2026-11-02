@@ -70,8 +70,8 @@ export async function loadLegacyLibrary(account: string) {
 const sources = new Map<string, Source>();
 export const loadSource = async (id: string) => sources.get(id);
 export const saveSource = async (source: Source) => {
-  sources.delete(source.arxivId);
-  sources.set(source.arxivId, source);
+  sources.delete(source.documentId);
+  sources.set(source.documentId, source);
   if (sources.size > 3) sources.delete(sources.keys().next().value!);
 };
 export function exportLibrary(library: Library) {

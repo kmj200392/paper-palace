@@ -13,8 +13,9 @@ The web app imports and exports this JSON object:
 ```
 
 Each paper has these required fields:
-- `id`: arXiv ID without a version, e.g. `1706.03762`.
-- `arxivId`: exact version, e.g. `1706.03762v7`.
+- `id`: arXiv ID without a version, e.g. `1706.03762`, or `openreview:<forumId>`.
+- Exactly one of `arxivId` (exact arXiv version, e.g. `1706.03762v7`) or `openreviewId` (case-sensitive OpenReview forum ID, e.g. `HPuSIXJaa9`). OpenReview records must have `id` equal to `openreview:` + `openreviewId`; do not put a fabricated value in `arxivId`. Existing arXiv records need no migration.
+- `venue`: optional source-provided venue text (maximum 300 characters). Do not treat a submission venue as evidence of acceptance.
 - `title`, `abstract`, `published` (source date string); `authors`, `categories`: arrays of strings.
 - `addedAt`, `updatedAt`: UTC ISO datetimes.
 - `status`: `unread`, `reading`, or `read`.

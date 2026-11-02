@@ -68,32 +68,47 @@ export const blockSchema = z.object({
   page: z.number().int().min(1).optional(),
 });
 export type Block = z.infer<typeof blockSchema>;
-export const paperSchema = z.object({
-  id: z.string().max(80),
-  arxivId: z.string().max(80),
-  title: z.string().min(1).max(1500),
-  graphLabel: graphLabelSchema.optional(),
-  authors: z.array(z.string().max(200)).max(200),
-  abstract: z.string().max(15000),
-  published: z.string().max(40),
-  categories: z.array(z.string().max(80)).max(40),
-  addedAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  status: z.enum(["unread", "reading", "read"]),
-  tags: z.array(z.string().max(80)).max(30),
-  notes: z.string().max(30000),
-  analysis: analysisSchema.nullable(),
-  analysisMeta: z
-    .object({
-      provider: z.enum(["openai", "anthropic"]),
-      model: z.string().max(100),
-      createdAt: z.string().datetime(),
-      sourceHash: z.string().max(100),
-      coverage: z.string().max(300),
-      explanationVersion: z.number().int().positive().optional(),
-    })
-    .nullable(),
-});
+export const paperSchema = z
+  .object({
+    id: z.string().max(80),
+    arxivId: z.string().min(1).max(80).optional(),
+    openreviewId: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{1,64}$/)
+      .optional(),
+    venue: z.string().max(300).optional(),
+    title: z.string().min(1).max(1500),
+    graphLabel: graphLabelSchema.optional(),
+    authors: z.array(z.string().max(200)).max(200),
+    abstract: z.string().max(15000),
+    published: z.string().max(40),
+    categories: z.array(z.string().max(80)).max(40),
+    addedAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    status: z.enum(["unread", "reading", "read"]),
+    tags: z.array(z.string().max(80)).max(30),
+    notes: z.string().max(30000),
+    analysis: analysisSchema.nullable(),
+    analysisMeta: z
+      .object({
+        provider: z.enum(["openai", "anthropic"]),
+        model: z.string().max(100),
+        createdAt: z.string().datetime(),
+        sourceHash: z.string().max(100),
+        coverage: z.string().max(300),
+        explanationVersion: z.number().int().positive().optional(),
+      })
+      .nullable(),
+  })
+  .refine(
+    (paper) => !!paper.arxivId !== !!paper.openreviewId,
+    "논문 출처를 하나 지정해 주세요.",
+  )
+  .refine(
+    (paper) =>
+      !paper.openreviewId || paper.id === `openreview:${paper.openreviewId}`,
+    "OpenReview 논문 ID가 일치하지 않아요.",
+  );
 export type Paper = z.infer<typeof paperSchema>;
 export const edgeSchema = z.object({
   id: z.string().max(100),
@@ -114,7 +129,7 @@ export const librarySchema = z.object({
 });
 export type Library = z.infer<typeof librarySchema>;
 export type Source = {
-  arxivId: string;
+  documentId: string;
   blocks: Block[];
   format: "html" | "pdf";
   hash: string;

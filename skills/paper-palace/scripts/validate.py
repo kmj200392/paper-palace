@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Lightweight validation for agent-authored Paper Palace import files."""
-import json, sys
+import json, sys, re
 from datetime import datetime
 
 def date(value):
@@ -14,7 +14,13 @@ def validate(data):
     for p in data['papers']:
         assert p['id'] not in ids, 'Duplicate paper ID'
         ids.add(p['id'])
-        for k in ('id','arxivId','title','abstract','published','notes'): assert isinstance(p[k],str), k
+        for k in ('id','title','abstract','published','notes'): assert isinstance(p[k],str), k
+        assert bool(p.get('arxivId')) != bool(p.get('openreviewId')), 'Specify exactly one paper source'
+        if p.get('openreviewId'):
+            assert isinstance(p['openreviewId'],str) and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',p['openreviewId'])
+            assert p['id'] == 'openreview:' + p['openreviewId'], 'OpenReview ID mismatch'
+        else: assert isinstance(p['arxivId'],str)
+        if 'venue' in p: assert isinstance(p['venue'],str) and len(p['venue']) <= 300
         for k in ('authors','categories','tags'): assert isinstance(p[k],list) and all(isinstance(v,str) for v in p[k]), k
         assert p['status'] in ('unread','reading','read')
         date(p['addedAt']); date(p['updatedAt'])

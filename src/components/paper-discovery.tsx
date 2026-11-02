@@ -263,7 +263,7 @@ export function PaperDiscovery({
             {result.recommendations.map((rec, index) => {
               const existing = library.papers.find(
                 (p) =>
-                  canonicalPaperId(p.arxivId) ===
+                  canonicalPaperId(p.arxivId || p.id) ===
                   canonicalPaperId(rec.paper.arxivId),
               );
               const arxivUrl = `https://arxiv.org/abs/${canonicalPaperId(rec.paper.arxivId)}`;

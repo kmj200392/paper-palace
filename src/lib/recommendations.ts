@@ -37,14 +37,15 @@ export const discoveryInputSchema = z.object({
   context: discoveryContextSchema,
   excludedIds: z.array(z.string().max(80)).max(1000),
 });
-export const candidateSchema = paperSchema.pick({
-  id: true,
-  arxivId: true,
-  title: true,
-  authors: true,
-  abstract: true,
-  published: true,
-  categories: true,
+// Discovery currently searches arXiv; graph context can include either provider.
+export const candidateSchema = z.object({
+  id: z.string().max(80),
+  arxivId: z.string().min(1).max(80),
+  title: z.string().min(1).max(1500),
+  authors: z.array(z.string().max(200)).max(200),
+  abstract: z.string().max(15000),
+  published: z.string().max(40),
+  categories: z.array(z.string().max(80)).max(40),
 });
 export type Candidate = z.infer<typeof candidateSchema>;
 export const recommendationSchema = z.object({
@@ -101,7 +102,7 @@ export function discoveryInput(library: Library, query: string) {
   const ids = new Set(papers.map((p) => p.id));
   return {
     query: query.trim(),
-    excludedIds: library.papers.map((p) => canonicalPaperId(p.arxivId)),
+    excludedIds: library.papers.map((p) => canonicalPaperId(p.arxivId || p.id)),
     context: {
       papers: papers.map((p) => ({
         id: p.id,
@@ -131,7 +132,7 @@ export function addRecommendation(
 ): Library {
   const { paper } = recommendationSchema.parse(recommendation);
   const id = canonicalPaperId(paper.arxivId);
-  if (library.papers.some((p) => canonicalPaperId(p.arxivId) === id))
+  if (library.papers.some((p) => canonicalPaperId(p.arxivId || p.id) === id))
     return library;
   if (library.papers.length >= 1000)
     throw new Error("라이브러리에는 최대 1,000편까지 저장할 수 있어요.");

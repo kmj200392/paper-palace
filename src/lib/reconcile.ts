@@ -53,8 +53,7 @@ function equal(a?: Entry, b?: Entry) {
 }
 function put(library: Library, id: string, value: Entry) {
   if (value.deleted) library.deleted[id] = value.deleted;
-  else if (value.item && "arxivId" in value.item)
-    library.papers.push(value.item);
+  else if (value.item && "title" in value.item) library.papers.push(value.item);
   else if (value.item) library.edges.push(value.item as Edge);
 }
 function finish(library: Library): Library {

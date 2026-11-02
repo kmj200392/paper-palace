@@ -57,6 +57,7 @@ import { api } from "@/lib/api";
 import { useLibraryReconciliation } from "./use-library-reconciliation";
 import { useGitHubLibrary } from "./use-github-library";
 import { importPaper } from "@/lib/source";
+import { paperDisplayId } from "@/lib/paper-reference";
 type User = { id: number; login: string; name: string };
 export default function Workspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -994,7 +995,7 @@ export default function Workspace() {
                       <p className="eyebrow">YOUR FIRST CHAPTER</p>
                       <h2>첫 번째 논문을 놓아 보세요.</h2>
                       <p>
-                        arXiv 링크 하나로 시작해요.
+                        논문 링크 하나로 시작해요.
                         <br />
                         읽고, 메모하고, 연결할수록 나의 연구 지도가 자라납니다.
                       </p>
@@ -1081,7 +1082,7 @@ export default function Workspace() {
                             </div>
                             <div className="card-footer">
                               <span>
-                                {p.published.slice(0, 4)} · arXiv:{p.id}
+                                {p.published.slice(0, 4)} · {paperDisplayId(p)}
                               </span>
                               <ArrowUpRight size={18} />
                             </div>
@@ -1254,7 +1255,8 @@ export default function Workspace() {
         title="논문을 놓을 자리"
       >
         <p className="dialog-description">
-          읽고 싶은 논문의 arXiv 링크를 붙여 넣어 주세요.
+          읽고 싶은 논문의 링크를 붙여 넣어 주세요. arXiv와 OpenReview를
+          지원해요.
         </p>
         <form
           onSubmit={(e) => {
@@ -1262,13 +1264,13 @@ export default function Workspace() {
             void addPaper(input);
           }}
         >
-          <label htmlFor="arxiv-input">arXiv 링크 또는 ID</label>
+          <label htmlFor="paper-link-input">논문 링크</label>
           <input
             autoFocus
-            id="arxiv-input"
+            id="paper-link-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="https://arxiv.org/abs/2501.12345"
+            placeholder="arxiv.org/abs/… 또는 openreview.net/forum?id=…"
             required
             disabled={!!busy}
           />

@@ -273,13 +273,13 @@ test("edits during conflict review survive before writing the reviewed result", 
 test("paper sources use a bounded memory cache without touching IndexedDB", async () => {
   for (let i = 0; i < 4; i++)
     await saveSource({
-      arxivId: `qa-${i}`,
+      documentId: `qa-${i}`,
       hash: "x",
       format: "html",
       blocks: [],
     });
   assert.equal(await loadSource("qa-0"), undefined);
-  assert.equal((await loadSource("qa-3"))!.arxivId, "qa-3");
+  assert.equal((await loadSource("qa-3"))!.documentId, "qa-3");
 });
 test("a changed SHA after read preserves both writers on explicit retry", async () => {
   let remote = library(paper("a"), paper("b")),

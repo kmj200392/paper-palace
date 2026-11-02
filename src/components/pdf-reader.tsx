@@ -19,6 +19,11 @@ import type {
 import type { EventBus } from "pdfjs-dist/types/web/event_utils";
 import { citationPdfMatches } from "@/lib/pdf-citations";
 import "./pdf-viewer-styles.css";
+import {
+  parsePaperReference,
+  sourceUrl,
+  paperPdfUrl,
+} from "@/lib/paper-reference";
 
 export type PdfTarget = { quote?: string; page?: number; request: number };
 type Runtime = {
@@ -32,20 +37,23 @@ type Runtime = {
   ) => void;
 };
 export function PdfReader({
-  arxivId,
+  documentId,
   title,
   target,
   visible,
   onQuote,
   onTextFallback,
 }: {
-  arxivId: string;
+  documentId: string;
   title: string;
   target: PdfTarget | null;
   visible: boolean;
   onQuote: (text: string, page: number) => boolean;
   onTextFallback: () => void;
 }) {
+  const reference = parsePaperReference(documentId);
+  const pdfUrl = sourceUrl(reference, "pdf");
+  const originalUrl = paperPdfUrl(reference);
   const container = useRef<HTMLDivElement>(null),
     pages = useRef<HTMLDivElement>(null);
   const runtime = useRef<Runtime | null>(null);
@@ -211,7 +219,7 @@ export function PdfReader({
           );
       });
       loading = pdfjs.getDocument({
-        url: `/api/source?id=${encodeURIComponent(arxivId)}&format=pdf`,
+        url: pdfUrl,
         cMapUrl: "/pdf-assets/cmaps/",
         cMapPacked: true,
         standardFontDataUrl: "/pdf-assets/standard_fonts/",
@@ -241,7 +249,7 @@ export function PdfReader({
       void viewer?.l10n?.destroy();
       void loading?.destroy();
     };
-  }, [arxivId, retry]);
+  }, [pdfUrl, retry]);
 
   useEffect(() => {
     if (!container.current) return;
@@ -426,7 +434,7 @@ export function PdfReader({
           <a
             className="icon-button"
             aria-label="원본 PDF 새 창에서 열기"
-            href={`https://arxiv.org/pdf/${arxivId}#page=${page}`}
+            href={`${originalUrl}#page=${page}`}
             target="_blank"
             rel="noopener noreferrer"
           >

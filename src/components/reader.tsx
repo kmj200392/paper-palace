@@ -25,6 +25,13 @@ import {
   explanationVersion,
 } from "@/lib/model";
 import { getSource } from "@/lib/source";
+import {
+  documentId,
+  paperReference,
+  paperDisplayId,
+  paperProviderName,
+  paperUrl,
+} from "@/lib/paper-reference";
 import { api } from "@/lib/api";
 import { PdfReader, type PdfTarget } from "./pdf-reader";
 import { appendPdfQuote } from "@/lib/pdf-citations";
@@ -47,6 +54,8 @@ export function Reader({
   openSettings: () => void;
   notify: (s: string) => void;
 }) {
+  const reference = paperReference(paper);
+  const sourceId = documentId(reference);
   const [source, setSource] = useState<Source | null>(null),
     [loading, setLoading] = useState(""),
     [sourceError, setSourceError] = useState(""),
@@ -64,7 +73,7 @@ export function Reader({
     setSource(null);
     setSourceError("");
     setLoading("원문을 여는 중…");
-    getSource(paper.arxivId, (m) => {
+    getSource(sourceId, (m) => {
       if (!cancelled) setLoading(m);
     })
       .then((s) => {
@@ -79,7 +88,7 @@ export function Reader({
     return () => {
       cancelled = true;
     };
-  }, [paper.arxivId, retry]);
+  }, [sourceId, retry]);
   const update = (changes: Partial<Paper>) =>
     onUpdate({ ...changes, updatedAt: new Date().toISOString() });
   const analyze = async () => {
@@ -175,7 +184,7 @@ export function Reader({
         <button className="text-button" onClick={onBack}>
           <ArrowLeft size={16} /> 라이브러리
         </button>
-        <span className="reader-id">arXiv:{paper.arxivId}</span>
+        <span className="reader-id">{paperDisplayId(paper)}</span>
         <div className="toolbar-right">
           <label className="sr-only" htmlFor="reading-status">
             읽기 상태
@@ -193,10 +202,10 @@ export function Reader({
           </select>
           <a
             className="icon-button"
-            href={`https://arxiv.org/abs/${paper.arxivId}`}
+            href={paperUrl(reference)}
             target="_blank"
             rel="noreferrer"
-            aria-label="arXiv에서 열기"
+            aria-label={`${paperProviderName(paper)}에서 열기`}
           >
             <ArrowUpRight size={18} />
           </a>
@@ -254,7 +263,7 @@ export function Reader({
           >
             {pdf ? (
               <PdfReader
-                arxivId={paper.arxivId}
+                documentId={sourceId}
                 title={paper.title}
                 target={pdfTarget}
                 visible={mobile === "source"}
@@ -264,7 +273,7 @@ export function Reader({
             ) : (
               <article className="paper-document">
                 <p className="tiny-label">
-                  ARXIV · {paper.published} ·{" "}
+                  {paperProviderName(paper)} · {paper.published} ·{" "}
                   {source?.format === "pdf"
                     ? "PDF 추출 텍스트"
                     : "HTML 원문 텍스트"}

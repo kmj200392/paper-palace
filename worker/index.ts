@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { parsePaperReference } from "../src/lib/paper-reference";
+import { importOpenReview, openReviewPdf } from "./openreview";
 import {
   aiProviderSchema,
   aiModelSchema,
@@ -11,7 +13,6 @@ import {
   deleteAccountKeyCookie,
 } from "./ai-credentials";
 import {
-  parseArxivId,
   librarySchema,
   analysisOutputSchema,
   blockSchema,
@@ -870,7 +871,15 @@ export default {
         return json({ ok: true });
       }
       if (path === "/api/paper" && req.method === "GET") {
-        const id = parseArxivId(url.searchParams.get("id") || "");
+        let reference;
+        try {
+          reference = parsePaperReference(url.searchParams.get("id") || "");
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
+        }
+        if (reference.provider === "openreview")
+          return json({ paper: await importOpenReview(reference.id) });
+        const id = reference.id;
         const r = await fetch(`https://arxiv.org/abs/${id}`, {
           headers: {
             "User-Agent": "PaperPalace/0.1 (https://paperpalace.minjaek.im)",
@@ -885,14 +894,26 @@ export default {
         return json({ html: await boundedText(r, 1500000) });
       }
       if (path === "/api/source" && req.method === "GET") {
-        const id = parseArxivId(url.searchParams.get("id") || ""),
-          format = url.searchParams.get("format") === "pdf" ? "pdf" : "html";
-        const r = await fetch(`https://arxiv.org/${format}/${id}`, {
-          headers: {
-            "User-Agent": "PaperPalace/0.1 (https://paperpalace.minjaek.im)",
-          },
-          signal: AbortSignal.timeout(60000),
-        });
+        let reference;
+        try {
+          reference = parsePaperReference(url.searchParams.get("id") || "");
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
+        }
+        const format =
+          url.searchParams.get("format") === "pdf" ? "pdf" : "html";
+        if (reference.provider === "openreview" && format !== "pdf")
+          throw new HttpError(404, "OpenReview 원문은 PDF로 읽을 수 있어요.");
+        const r =
+          reference.provider === "openreview"
+            ? await openReviewPdf(reference.id)
+            : await fetch(`https://arxiv.org/${format}/${reference.id}`, {
+                headers: {
+                  "User-Agent":
+                    "PaperPalace/0.1 (https://paperpalace.minjaek.im)",
+                },
+                signal: AbortSignal.timeout(60000),
+              });
         if (!r.ok)
           throw new HttpError(404, "이 형식의 원문을 가져오지 못했어요.");
         if (format === "html")

@@ -10,7 +10,7 @@ export default function Privacy() {
       <main id="main" className="legal section-shell">
         <p className="eyebrow">YOUR KNOWLEDGE, YOUR CONTROL</p>
         <h1>개인정보와 데이터 안내</h1>
-        <p>최종 업데이트: 2026년 11월 1일</p>
+        <p>최종 업데이트: 2026년 11월 2일</p>
         <h2>어떤 정보를 처리하나요?</h2>
         <p>
           GitHub 로그인 시 사용자 ID, 이름, 로그인명과 접근 토큰을 사용합니다.
@@ -120,10 +120,12 @@ export default function Privacy() {
         </p>
         <h2>호스팅과 외부 서비스</h2>
         <p>
-          Cloudflare가 사이트와 요청을 전달하며, arXiv에서 공개 논문을
-          불러옵니다. 서비스 자체의 광고·행동 분석 추적기는 사용하지 않습니다.
-          인프라 제공자는 보안과 서비스 운영에 필요한 요청 정보를 처리할 수
-          있습니다.
+          Cloudflare가 사이트와 요청을 전달하며, arXiv와 OpenReview에서 공개
+          논문을 불러옵니다. 논문 링크의 ID를 해당 제공자에게 전달하며, 비공개
+          심사 자료는 가져오지 않습니다. OpenReview에 로그인 정보나 브라우저
+          쿠키를 전달하지 않습니다. 서비스 자체의 광고·행동 분석 추적기는
+          사용하지 않습니다. 인프라 제공자는 보안과 서비스 운영에 필요한 요청
+          정보를 처리할 수 있습니다.
         </p>
         <h2>문의</h2>
         <p>

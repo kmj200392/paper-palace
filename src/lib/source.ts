@@ -4,11 +4,20 @@ import {
   type Paper,
   parseArxivId,
   baseId,
+  paperSchema,
 } from "./model";
 import { loadSource, saveSource } from "./storage";
 import { api } from "./api";
+import { parsePaperReference, documentId, sourceUrl } from "./paper-reference";
 export async function importPaper(input: string): Promise<Paper> {
-  const id = parseArxivId(input);
+  const ref = parsePaperReference(input);
+  const id = ref.id;
+  if (ref.provider === "openreview") {
+    const data = await api<{ paper: Paper }>(
+      `/paper?id=${encodeURIComponent(documentId(ref))}`,
+    );
+    return paperSchema.parse(data.paper);
+  }
   const { html } = await api<{ html: string }>(
     `/paper?id=${encodeURIComponent(id)}`,
   );
@@ -57,18 +66,19 @@ export async function importPaper(input: string): Promise<Paper> {
   };
 }
 export async function getSource(
-  arxivId: string,
+  input: string,
   onProgress?: (s: string) => void,
 ): Promise<Source> {
-  const cached = await loadSource(arxivId);
+  const ref = parsePaperReference(input);
+  const key = documentId(ref);
+  const cached = await loadSource(key);
   if (cached) return cached;
   onProgress?.("논문 원문을 가져오는 중…");
   let blocks: Block[] = [],
     format: "html" | "pdf" = "html";
-  const htmlRes = await fetch(
-    `/api/source?id=${encodeURIComponent(arxivId)}&format=html`,
-  );
-  if (htmlRes.ok) {
+  const htmlRes =
+    ref.provider === "arxiv" ? await fetch(sourceUrl(ref, "html")) : null;
+  if (htmlRes?.ok) {
     const doc = new DOMParser().parseFromString(
       await htmlRes.text(),
       "text/html",
@@ -109,11 +119,15 @@ export async function getSource(
   }
   if (blocks.filter((b) => b.kind === "paragraph").length < 5) {
     format = "pdf";
-    onProgress?.("HTML 원문이 없어 PDF를 읽고 있어요…");
+    onProgress?.(
+      ref.provider === "openreview"
+        ? "OpenReview PDF를 읽고 있어요…"
+        : "HTML 원문이 없어 PDF를 읽고 있어요…",
+    );
     const pdfjs = await import("pdfjs-dist");
     pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
     const loading = pdfjs.getDocument({
-      url: `/api/source?id=${encodeURIComponent(arxivId)}&format=pdf`,
+      url: sourceUrl(ref, "pdf"),
     });
     const pdf = await loading.promise;
     if (pdf.numPages > 120) {
@@ -162,7 +176,7 @@ export async function getSource(
   )
     .map((x) => x.toString(16).padStart(2, "0"))
     .join("");
-  const source: Source = { arxivId, blocks, format, hash };
+  const source: Source = { documentId: key, blocks, format, hash };
   await saveSource(source);
   return source;
 }
