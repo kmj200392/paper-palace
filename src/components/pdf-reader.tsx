@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   StickyNote,
+  MessageCircle,
   X,
 } from "lucide-react";
 import type { PDFDocumentLoadingTask } from "pdfjs-dist";
@@ -37,6 +38,7 @@ export function PdfReader({
   target,
   visible,
   onQuote,
+  onAsk,
   onTextFallback,
 }: {
   arxivId: string;
@@ -44,6 +46,7 @@ export function PdfReader({
   target: PdfTarget | null;
   visible: boolean;
   onQuote: (text: string, page: number) => boolean;
+  onAsk: (text: string, page: number) => void;
   onTextFallback: () => void;
 }) {
   const container = useRef<HTMLDivElement>(null),
@@ -69,6 +72,8 @@ export function PdfReader({
   const [selection, setSelection] = useState<{
     text: string;
     page: number;
+    x: number;
+    y: number;
   } | null>(null);
 
   useEffect(() => {
@@ -198,9 +203,7 @@ export function PdfReader({
                 ? mode.current === "citation"
                   ? "PDF에서 같은 문구를 찾지 못했어요. 추출 텍스트에서 근거를 확인해 주세요."
                   : "검색 결과가 없어요."
-                : mode.current === "citation"
-                  ? "근거 문구를 PDF에 표시했어요."
-                  : "",
+                : "",
           );
         },
       );
@@ -276,7 +279,7 @@ export function PdfReader({
     if (target.page && target.page <= rt.viewer.pagesCount)
       rt.viewer.currentPageNumber = target.page;
     if (target.quote) {
-      setSearchOpen(true);
+      setSearchOpen(false);
       setQuery(target.quote);
       rt.find(target.quote, true);
     }
@@ -304,14 +307,42 @@ export function PdfReader({
           : selected.focusNode?.parentElement;
       const firstPage = anchor?.closest<HTMLElement>(".page[data-page-number]");
       const lastPage = focus?.closest<HTMLElement>(".page[data-page-number]");
+      const rect = selected.rangeCount
+        ? selected.getRangeAt(0).getBoundingClientRect()
+        : null;
+      const bounds = container.current.getBoundingClientRect();
       setSelection(
         text && text.length <= 2000 && firstPage && firstPage === lastPage
-          ? { text, page: Number(firstPage.dataset.pageNumber) }
+          ? {
+              text,
+              page: Number(firstPage.dataset.pageNumber),
+              x: rect
+                ? Math.max(
+                    140,
+                    Math.min(
+                      bounds.width - 140,
+                      rect.left - bounds.left + rect.width / 2,
+                    ),
+                  )
+                : bounds.width / 2,
+              y: rect
+                ? Math.max(
+                    8,
+                    Math.min(bounds.height - 54, rect.bottom - bounds.top + 8),
+                  )
+                : 8,
+            }
           : null,
       );
     };
+    const onScroll = () => setSelection(null);
     document.addEventListener("selectionchange", onSelection);
-    return () => document.removeEventListener("selectionchange", onSelection);
+    const element = container.current;
+    element?.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      document.removeEventListener("selectionchange", onSelection);
+      element?.removeEventListener("scroll", onScroll);
+    };
   }, []);
   const go = (number: number) => {
     const viewer = runtime.current?.viewer;
@@ -535,23 +566,36 @@ export function PdfReader({
           </div>
         )}
         {selection && (
-          <button
-            className="pdf-selection-action button small"
+          <div
+            className="pdf-selection-actions"
+            style={{ left: selection.x, top: selection.y }}
             onPointerDown={(e) => e.preventDefault()}
-            onClick={() => {
-              if (onQuote(selection.text, selection.page)) {
+          >
+            <button
+              className="button small primary"
+              onClick={() => {
+                onAsk(selection.text, selection.page);
                 window.getSelection()?.removeAllRanges();
                 setSelection(null);
-              }
-            }}
-          >
-            <StickyNote size={14} />
-            선택한 문장 메모에 추가 · {selection.page}쪽
-          </button>
+              }}
+            >
+              <MessageCircle size={14} /> AI에게 질문
+            </button>
+            <button
+              className="button small"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (onQuote(selection.text, selection.page)) {
+                  window.getSelection()?.removeAllRanges();
+                  setSelection(null);
+                }
+              }}
+            >
+              <StickyNote size={14} />
+              메모에 추가
+            </button>
+          </div>
         )}
-      </div>
-      <div className="pdf-reading-hint">
-        그림·수식은 원본 그대로 · 문장을 드래그해 메모에 남기세요
       </div>
     </div>
   );

@@ -18,6 +18,12 @@ import {
   verifyAnalysis,
 } from "../src/lib/model";
 import { analysisInstructions } from "./analysis-prompt";
+import { chatInstructions } from "./chat-prompt";
+import {
+  chatDocumentSchema,
+  chatAnswerSchema,
+  verifiedChatAnswer,
+} from "../src/lib/paper-chat";
 import { paperLabelInstructions } from "./paper-label-prompt";
 import { paperLabelsSchema, labelBatchSize } from "../src/lib/paper-labels";
 import {
@@ -165,6 +171,7 @@ async function modelJSON(
   instructions: string,
   schemaName: string,
   maxTokens?: number,
+  signal?: AbortSignal,
 ) {
   const openai = input.provider === "openai";
   const detailed = schemaName === "paper_analysis";
@@ -215,7 +222,9 @@ async function modelJSON(
             "anthropic-version": "2023-06-01",
           },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(detailed ? 240000 : 150000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(150000)])
+        : AbortSignal.timeout(detailed ? 240000 : 150000),
     },
   );
   if (!response.ok) {
@@ -322,6 +331,26 @@ async function analyze(req: Request, env: Env) {
     analysis: verifyAnalysis(parsed.data, input.blocks),
     usage: result.usage,
   });
+}
+async function chat(req: Request, env: Env) {
+  const payload = await body(req, 950000);
+  const input = chatDocumentSchema.parse(payload);
+  const credentials = z.object(aiRequestFields).parse(payload);
+  const schema = z.toJSONSchema(chatAnswerSchema, { target: "draft-7" });
+  delete schema.$schema;
+  const result = await modelJSON(
+    await resolveAIKey(req, env, credentials),
+    schema,
+    JSON.stringify(input),
+    chatInstructions,
+    "paper_chat",
+    6000,
+    req.signal,
+  );
+  const parsed = chatAnswerSchema.safeParse(result.value);
+  if (!parsed.success)
+    throw new HttpError(502, "답변을 읽지 못했어요. 다시 질문해 주세요.");
+  return json(verifiedChatAnswer(parsed.data, input.blocks));
 }
 async function namePapers(req: Request, env: Env) {
   const input = z
@@ -925,6 +954,8 @@ export default {
         return await namePapers(req, env);
       if (path === "/api/analyze" && req.method === "POST")
         return await analyze(req, env);
+      if (path === "/api/chat" && req.method === "POST")
+        return await chat(req, env);
       return json({ error: "경로를 찾을 수 없어요." }, 404);
     } catch (error) {
       if (error instanceof HttpError)

@@ -10,7 +10,7 @@ export default function Privacy() {
       <main id="main" className="legal section-shell">
         <p className="eyebrow">YOUR KNOWLEDGE, YOUR CONTROL</p>
         <h1>개인정보와 데이터 안내</h1>
-        <p>최종 업데이트: 2026년 11월 1일</p>
+        <p>최종 업데이트: 2026년 11월 9일</p>
         <h2>어떤 정보를 처리하나요?</h2>
         <p>
           GitHub 로그인 시 사용자 ID, 이름, 로그인명과 접근 토큰을 사용합니다.
@@ -38,6 +38,14 @@ export default function Privacy() {
           해당 library.json 파일을 JSON으로 가져올 수 있습니다.
         </p>
         <h2>AI 키와 분석 요청</h2>
+        <p>
+          논문 AI 채팅은 질문, 선택한 PDF 문장과 페이지 번호, 최근 대화, 논문
+          제목과 추출 본문을 연결한 AI 제공자에게 전달합니다. 긴 논문은 질문과
+          관련된 본문 일부를 사용하며 화면에 이를 표시합니다. 대화는 현재 열린
+          논문의 메모리에만 유지하며 논문을 닫거나 새로고침하면 사라집니다.
+          ‘메모에 저장’을 누른 답변만 기존 연구 메모에 추가되어 GitHub에
+          저장됩니다. 그림 픽셀은 AI 채팅에 전달하지 않습니다.
+        </p>
         <p>
           API 키는 기본적으로 현재 탭의 메모리에서 사용합니다. GitHub 로그인 후
           ‘로그인 동안 계속 사용’을 선택하면 현재 계정 ID·제공자·모델·API 키를

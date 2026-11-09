@@ -94,6 +94,9 @@ export default function Workspace() {
     [selected, setSelected] = useState<string | null>(null),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
+  useEffect(() => {
+    if (selected) setSidebarCollapsed(true);
+  }, [selected]);
   const [addOpen, setAddOpen] = useState(false),
     [settingsOpen, setSettingsOpen] = useState(false),
     [edgeOpen, setEdgeOpen] = useState(false),
@@ -530,7 +533,9 @@ export default function Workspace() {
       </main>
     );
   return (
-    <div className={`workspace${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+    <div
+      className={`workspace${sidebarCollapsed ? " sidebar-collapsed" : ""}${paper ? " reader-focused" : ""}`}
+    >
       <aside
         id="workspace-sidebar"
         className="sidebar"
@@ -730,7 +735,7 @@ export default function Workspace() {
       )}
       <div className={`workspace-main${selected ? " is-reading" : ""}`}>
         <main id="main" className={selected ? "reader-main" : "library-main"}>
-          {libraryReady && (
+          {libraryReady && (!paper || remote.error) && (
             <div
               className={`github-save-status ${remote.status === "error" ? "has-error" : ""}`}
             >
@@ -868,8 +873,18 @@ export default function Workspace() {
             </section>
           ) : paper ? (
             <Reader
-              key={`${repo}:${paper.id}`}
+              key={`${account}:${repo}:${paper.id}`}
               paper={paper}
+              syncState={
+                remote.status === "error"
+                  ? "error"
+                  : syncing
+                    ? "saving"
+                    : remote.dirty
+                      ? "pending"
+                      : "saved"
+              }
+              onSync={sync}
               settings={ai}
               openSettings={() => setSettingsOpen(true)}
               notify={notify}
@@ -1238,13 +1253,15 @@ export default function Workspace() {
             </>
           )}
         </main>
-        <footer className="workspace-footer">
-          <span>Read. Connect. Remember.</span>
-          <div className="workspace-footer-links">
-            <a href="/privacy/">개인정보 안내</a>
-            <MakerCredit />
-          </div>
-        </footer>
+        {!paper && (
+          <footer className="workspace-footer">
+            <span>Read. Connect. Remember.</span>
+            <div className="workspace-footer-links">
+              <a href="/privacy/">개인정보 안내</a>
+              <MakerCredit />
+            </div>
+          </footer>
+        )}
       </div>
       <Dialog
         open={addOpen}

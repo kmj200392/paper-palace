@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -12,6 +12,10 @@ import {
   Sparkles,
   StickyNote,
   Trash2,
+  MessageCircle,
+  PanelRightOpen,
+  Ellipsis,
+  X,
 } from "lucide-react";
 import {
   type Paper,
@@ -29,6 +33,8 @@ import { api } from "@/lib/api";
 import { PdfReader, type PdfTarget } from "./pdf-reader";
 import { appendPdfQuote } from "@/lib/pdf-citations";
 import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
+import { PaperChat } from "./paper-chat";
+import type { ChatQuote } from "@/lib/paper-chat";
 export type { AISettings } from "@/lib/ai-vault";
 export function Reader({
   paper,
@@ -38,6 +44,8 @@ export function Reader({
   settings,
   openSettings,
   notify,
+  syncState,
+  onSync,
 }: {
   paper: Paper;
   onBack: () => void;
@@ -46,6 +54,8 @@ export function Reader({
   settings: AISettings;
   openSettings: () => void;
   notify: (s: string) => void;
+  syncState: "saved" | "saving" | "pending" | "error";
+  onSync: () => void;
 }) {
   const [source, setSource] = useState<Source | null>(null),
     [loading, setLoading] = useState(""),
@@ -53,10 +63,61 @@ export function Reader({
     [retry, setRetry] = useState(0),
     [analyzing, setAnalyzing] = useState(false),
     [active, setActive] = useState(""),
-    [tab, setTab] = useState<"summary" | "notes">("summary"),
+    [tab, setTab] = useState<"summary" | "notes" | "chat">("summary"),
     [mobile, setMobile] = useState<"source" | "summary">("source"),
     [pdf, setPdf] = useState(true),
     [pdfTarget, setPdfTarget] = useState<PdfTarget | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [split, setSplit] = useState(60);
+  const [resizing, setResizing] = useState(false);
+  const [splitLimits, setSplitLimits] = useState({ min: 32, max: 75 });
+  const [chatSelection, setChatSelection] = useState<
+    (ChatQuote & { request: number }) | null
+  >(null);
+  const columns = useRef<HTMLDivElement>(null);
+  const panelToggle = useRef<HTMLButtonElement>(null);
+  const dragging = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("paper-palace:reader-split"));
+      if (saved >= 32 && saved <= 75) setSplit(saved);
+    } catch {
+      /* optional layout preference */
+    }
+  }, []);
+  useEffect(() => {
+    if (!columns.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width;
+      if (window.innerWidth <= 850 || width < 600) return;
+      const min = Math.max(32, (280 / width) * 100);
+      const max = Math.min(75, ((width - 286) / width) * 100);
+      setSplitLimits({ min, max });
+      setSplit((value) => Math.min(max, Math.max(min, value)));
+    });
+    observer.observe(columns.current);
+    return () => observer.disconnect();
+  }, []);
+  const resize = (value: number, save = false) => {
+    const next = Math.min(splitLimits.max, Math.max(splitLimits.min, value));
+    setSplit(next);
+    if (save)
+      try {
+        localStorage.setItem("paper-palace:reader-split", String(next));
+      } catch {
+        /* optional layout preference */
+      }
+  };
+  const openPanel = (nextTab = tab) => {
+    setPanelOpen(true);
+    setTab(nextTab);
+    setMobile("summary");
+  };
+  const closePanel = () => {
+    setPanelOpen(false);
+    setMobile("source");
+    panelToggle.current?.focus();
+  };
   const sourcePane = useRef<HTMLDivElement>(null),
     analysisRequest = useRef(false);
   useEffect(() => {
@@ -156,9 +217,17 @@ export function Reader({
       return false;
     }
     update({ notes });
-    setTab("notes");
+    openPanel("notes");
     notify(`PDF ${page}쪽의 선택한 문장을 메모에 추가했어요.`);
     return true;
+  };
+  const quoteToChat = (text: string, page: number) => {
+    setChatSelection((previous) => ({
+      text,
+      page,
+      request: (previous?.request || 0) + 1,
+    }));
+    openPanel("chat");
   };
   const verified =
     source && paper.analysis
@@ -170,84 +239,120 @@ export function Reader({
     source.hash !== paper.analysisMeta.sourceHash
   );
   return (
-    <div className="reader">
+    <div
+      className={`reader${panelOpen ? "" : " panel-closed"}${resizing ? " is-resizing" : ""}`}
+    >
       <div className="reader-toolbar">
-        <button className="text-button" onClick={onBack}>
-          <ArrowLeft size={16} /> 라이브러리
+        <button
+          className="icon-button"
+          onClick={onBack}
+          aria-label="라이브러리로 돌아가기"
+          title="라이브러리"
+        >
+          <ArrowLeft size={18} />
         </button>
-        <span className="reader-id">arXiv:{paper.arxivId}</span>
+        <span className="reader-title" title={paper.title}>
+          {paper.title}
+        </span>
         <div className="toolbar-right">
-          <label className="sr-only" htmlFor="reading-status">
-            읽기 상태
-          </label>
-          <select
-            id="reading-status"
-            value={paper.status}
-            onChange={(e) =>
-              update({ status: e.target.value as Paper["status"] })
+          <button
+            className={`icon-button reader-save ${syncState}`}
+            onClick={onSync}
+            disabled={syncState === "saving"}
+            aria-label={
+              syncState === "error"
+                ? "GitHub 저장 다시 시도"
+                : syncState === "saved"
+                  ? "GitHub에 저장됨"
+                  : "GitHub 저장 중"
+            }
+            title={
+              syncState === "error"
+                ? "GitHub 저장 확인 필요"
+                : syncState === "saved"
+                  ? "GitHub에 저장됨"
+                  : "GitHub 저장 중"
             }
           >
-            <option value="unread">읽기 전</option>
-            <option value="reading">읽는 중</option>
-            <option value="read">읽음</option>
-          </select>
-          <a
-            className="icon-button"
-            href={`https://arxiv.org/abs/${paper.arxivId}`}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="arXiv에서 열기"
-          >
-            <ArrowUpRight size={18} />
-          </a>
+            {syncState === "saved" ? (
+              <Check size={16} />
+            ) : (
+              <LoaderCircle
+                size={16}
+                className={syncState === "saving" ? "spin" : ""}
+              />
+            )}
+          </button>
+          <details className="reader-menu">
+            <summary
+              className="icon-button"
+              aria-label="논문 도구"
+              title="논문 도구"
+            >
+              <Ellipsis size={18} />
+            </summary>
+            <div className="reader-menu-content">
+              <button
+                className="text-button"
+                onClick={() => setPdf((value) => !value)}
+              >
+                <FileText size={15} />
+                {pdf ? "추출 텍스트로 읽기" : "원본 PDF로 읽기"}
+              </button>
+              <label className="sr-only" htmlFor="reading-status">
+                읽기 상태
+              </label>
+              <select
+                id="reading-status"
+                value={paper.status}
+                onChange={(e) =>
+                  update({ status: e.target.value as Paper["status"] })
+                }
+              >
+                <option value="unread">읽기 전</option>
+                <option value="reading">읽는 중</option>
+                <option value="read">읽음</option>
+              </select>
+              <a
+                className="icon-button"
+                href={`https://arxiv.org/abs/${paper.arxivId}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="arXiv에서 열기"
+              >
+                <ArrowUpRight size={18} />
+              </a>
+              <button
+                className="icon-button"
+                onClick={onDelete}
+                aria-label="논문 삭제"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </details>
           <button
-            className="icon-button"
-            onClick={onDelete}
-            aria-label="논문 삭제"
+            ref={panelToggle}
+            className="icon-button reader-panel-toggle"
+            onClick={() => openPanel()}
+            aria-label="정리·메모·AI 채팅 패널 열기"
+            title="정리 · 메모 · AI 채팅"
+            aria-expanded={panelOpen && mobile === "summary"}
           >
-            <Trash2 size={16} />
+            <PanelRightOpen size={19} />
           </button>
         </div>
       </div>
-      <div className="mobile-reader-tabs">
-        <button
-          className={mobile === "summary" ? "active" : ""}
-          onClick={() => setMobile("summary")}
-        >
-          정리와 메모
-        </button>
-        <button
-          className={mobile === "source" ? "active" : ""}
-          onClick={() => setMobile("source")}
-        >
-          논문 원문
-        </button>
-      </div>
-      <div className="reader-columns">
+      <div
+        ref={columns}
+        className="reader-columns"
+        style={{ "--reader-split": `${split}%` } as CSSProperties}
+      >
         <section
+          id="reader-source-panel"
+          aria-label="논문 원문"
           className={`source-panel ${mobile === "source" ? "mobile-active" : ""}`}
         >
-          <div className="panel-heading">
-            <span>
-              <FileText size={15} /> 원문 읽기
-            </span>
-            <div className="segmented">
-              <button
-                className={pdf ? "active" : ""}
-                onClick={() => setPdf(true)}
-                aria-pressed={pdf}
-              >
-                원본 PDF
-              </button>
-              <button
-                className={!pdf ? "active" : ""}
-                onClick={showText}
-                aria-pressed={!pdf}
-              >
-                추출 텍스트
-              </button>
-            </div>
-          </div>
           <div
             ref={sourcePane}
             className={`source-scroll${pdf ? " is-pdf" : ""}`}
@@ -259,6 +364,7 @@ export function Reader({
                 target={pdfTarget}
                 visible={mobile === "source"}
                 onQuote={quoteToNotes}
+                onAsk={quoteToChat}
                 onTextFallback={showText}
               />
             ) : (
@@ -337,7 +443,61 @@ export function Reader({
             )}
           </div>
         </section>
+        <div
+          className="reader-divider"
+          role="separator"
+          tabIndex={panelOpen ? 0 : -1}
+          aria-label="논문 원문 너비"
+          aria-orientation="vertical"
+          aria-controls="reader-source-panel"
+          aria-valuemin={Math.round(splitLimits.min)}
+          aria-valuemax={Math.round(splitLimits.max)}
+          aria-valuenow={Math.round(split)}
+          title="드래그해서 너비 조절 · 더블클릭하면 기본 너비"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            dragging.current = true;
+            setResizing(true);
+            window.getSelection()?.removeAllRanges();
+          }}
+          onPointerMove={(e) => {
+            if (!dragging.current || !columns.current) return;
+            const rect = columns.current.getBoundingClientRect();
+            resize(((e.clientX - rect.left) / rect.width) * 100);
+          }}
+          onPointerUp={(e) => {
+            dragging.current = false;
+            setResizing(false);
+            e.currentTarget.releasePointerCapture(e.pointerId);
+            resize(split, true);
+          }}
+          onLostPointerCapture={() => {
+            dragging.current = false;
+            setResizing(false);
+          }}
+          onDoubleClick={() => resize(60, true)}
+          onKeyDown={(e) => {
+            const value =
+              e.key === "ArrowLeft"
+                ? split - 2
+                : e.key === "ArrowRight"
+                  ? split + 2
+                  : e.key === "Home"
+                    ? 32
+                    : e.key === "End"
+                      ? 75
+                      : null;
+            if (value !== null) {
+              e.preventDefault();
+              resize(value, true);
+            }
+          }}
+        >
+          <span />
+        </div>
         <section
+          aria-label="논문 읽기 도우미"
           className={`analysis-panel ${mobile === "summary" ? "mobile-active" : ""}`}
         >
           <div className="panel-heading">
@@ -354,9 +514,46 @@ export function Reader({
               >
                 <StickyNote size={14} /> 나의 메모
               </button>
+              <button
+                className={tab === "chat" ? "active" : ""}
+                aria-pressed={tab === "chat"}
+                onClick={() => setTab("chat")}
+              >
+                <MessageCircle size={14} /> AI 채팅
+              </button>
             </div>
+            <button
+              className="icon-button panel-close"
+              aria-label="오른쪽 패널 닫기"
+              title="패널 닫기"
+              onClick={closePanel}
+            >
+              <X size={17} />
+            </button>
           </div>
-          <div className="analysis-scroll">
+          <div className="chat-tab-content" hidden={tab !== "chat"}>
+            <PaperChat
+              key={`${settings.provider}:${settings.model}:${settings.accountId || "key"}`}
+              title={paper.title}
+              source={source}
+              sourceError={sourceError}
+              settings={settings}
+              visible={tab === "chat" && panelOpen}
+              selection={chatSelection}
+              onCitation={jump}
+              openSettings={openSettings}
+              onSaveNote={(text) => {
+                const next = `${paper.notes}${paper.notes ? "\n\n" : ""}${text}`;
+                if (next.length > 30000) {
+                  notify("메모의 저장 한도(3만 자)를 확인해 주세요.");
+                  return;
+                }
+                update({ notes: next });
+                notify("답변을 나의 메모에 저장했어요.");
+              }}
+            />
+          </div>
+          <div className="analysis-scroll" hidden={tab === "chat"}>
             {tab === "notes" ? (
               <div className="notes-panel">
                 <p className="eyebrow">MAKE IT PART OF YOUR THINKING</p>
@@ -389,8 +586,7 @@ export function Reader({
                   placeholder="이 논문은 내 연구와 어떻게 이어질까?\n비교해 보고 싶은 방법이나 남은 질문을 적어 보세요."
                 />
                 <span className="muted">
-                  <Check size={12} /> GitHub에 자동 저장 · 저장 상태는 상단에서
-                  확인
+                  <Check size={12} /> GitHub에 자동 저장
                 </span>
               </div>
             ) : (
