@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./studio.css";
+import "./palace.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://paperpalace.minjaek.im"),
   title: {

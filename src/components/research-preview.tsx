@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PalaceCourtyard, PaperPortal } from "./palace-architecture";
 import {
   ArrowUpRight,
   BookOpen,
@@ -40,27 +41,18 @@ export function ResearchPreview() {
     <div className="research-preview">
       <div className="folio-topline">
         <span>
-          <Network size={15} aria-hidden="true" /> 나의 연구 지도
+          <Network size={15} aria-hidden="true" /> 생각이 머무는 궁전
         </span>
         <span>미리보기</span>
       </div>
       <div className="folio-map">
+        <PalaceCourtyard />
         <svg
-          viewBox="0 0 600 340"
-          className="folio-architecture"
+          viewBox="0 0 880 660"
+          className="entrance-paths"
           aria-hidden="true"
         >
-          <path
-            className="folio-arch"
-            d="M65 340V130a235 235 0 0 1 470 0v210M90 340V132a210 210 0 0 1 420 0v208"
-          />
-          <path
-            className="folio-path"
-            d="M135 150C250 150 260 80 425 90M135 150C250 150 270 195 380 195M425 90C485 135 460 175 380 195"
-          />
-          <circle cx="263" cy="125" r="3" />
-          <circle cx="252" cy="167" r="3" />
-          <circle cx="450" cy="140" r="3" />
+          <path d="M280 355Q425 285 575 345M575 345Q570 440 440 470M280 355Q280 445 440 470" />
         </svg>
         {ideas.map((item, index) => (
           <button
@@ -69,12 +61,11 @@ export function ResearchPreview() {
             aria-pressed={active === index}
             onClick={() => setActive(index)}
           >
-            <BookOpen size={15} aria-hidden="true" />
+            <PaperPortal />
             <span>{item.name}</span>
             <small>{item.year}</small>
           </button>
         ))}
-        <span className="folio-map-note">읽은 논문에서, 다음 질문으로.</span>
       </div>
       <div className="folio-paper" key={idea.name} aria-live="polite">
         <div className="folio-paper-meta">

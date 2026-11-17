@@ -6,8 +6,19 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
-import { Minus, Plus, Expand, Minimize2, Scan, Network } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Expand,
+  Minimize2,
+  Scan,
+  Network,
+  Landmark,
+  Tags,
+  BookOpen,
+} from "lucide-react";
 import type { Paper, Edge } from "@/lib/model";
 import {
   zoomGraphAt,
@@ -16,6 +27,7 @@ import {
 } from "@/lib/graph-viewport";
 import { directedEdge } from "@/lib/graph-edge";
 import { graphPaperLabel } from "@/lib/paper-labels";
+import { PalaceCourtyard, PaperPortal } from "./palace-architecture";
 export function Graph({
   papers,
   edges,
@@ -31,11 +43,29 @@ export function Graph({
     }),
     [positions, setPositions] = useState<Record<string, Point>>({}),
     [nodeSizes, setNodeSizes] = useState<
-      Record<string, { width: number; height: number }>
+      Record<
+        string,
+        { width: number; height: number; offsetX: number; offsetY: number }
+      >
     >({}),
     [expanded, setExpanded] = useState(false),
     [placeholderHeight, setPlaceholderHeight] = useState(0);
+  const [palace, setPalace] = useState(true);
+  const [activeNode, setActiveNode] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(true);
   const { scale, pan } = viewport;
+  const related = useMemo(() => {
+    const ids = new Set<string>();
+    if (activeNode) {
+      ids.add(activeNode);
+      edges.forEach((edge) => {
+        if (edge.source === activeNode) ids.add(edge.target);
+        if (edge.target === activeNode) ids.add(edge.source);
+      });
+    }
+    return ids;
+  }, [activeNode, edges]);
+  const activePaper = papers.find((paper) => paper.id === activeNode);
   const arrowId = useId();
   const hasPapers = papers.length > 0;
   const canvas = useRef<HTMLDivElement>(null);
@@ -52,19 +82,23 @@ export function Graph({
     () =>
       Object.fromEntries(
         papers.map((p, i) => {
+          const ringIndex = Math.floor(i / 8);
+          const slots = Math.min(8, papers.length - ringIndex * 8);
           const angle =
-            (i * Math.PI * 2) / Math.max(papers.length, 1) - Math.PI / 2;
+            ((i % 8) * Math.PI * 2) / Math.max(slots, 1) -
+            Math.PI / 2 +
+            ringIndex * (Math.PI / 8);
           const ring =
             papers.length === 1
               ? 0
               : papers.length < 6
                 ? 180
-                : 240 + Math.floor(i / 12) * 110;
+                : 260 + ringIndex * 220;
           return [
             p.id,
             positions[p.id] || {
               x: 440 + Math.cos(angle) * ring,
-              y: 310 + Math.sin(angle) * ring * 0.8,
+              y: 345 + Math.sin(angle) * ring * 0.8,
             },
           ];
         }),
@@ -77,16 +111,28 @@ export function Graph({
     const element = canvas.current;
     const points = Object.values(layoutRef.current);
     if (!element || !points.length) return;
-    const left = Math.min(...points.map((p) => p.x));
-    const right = Math.max(...points.map((p) => p.x));
-    const top = Math.min(...points.map((p) => p.y));
-    const bottom = Math.max(...points.map((p) => p.y));
+    const left = Math.min(
+      ...points.map((p) => p.x - 85),
+      ...(palace ? [60] : []),
+    );
+    const right = Math.max(
+      ...points.map((p) => p.x + 85),
+      ...(palace ? [820] : []),
+    );
+    const top = Math.min(
+      ...points.map((p) => p.y - 65),
+      ...(palace ? [20] : []),
+    );
+    const bottom = Math.max(
+      ...points.map((p) => p.y + 65),
+      ...(palace ? [625] : []),
+    );
     const nextScale = Math.max(
       0.15,
       Math.min(
         1,
-        (element.clientWidth - 40) / (right - left + 220),
-        (element.clientHeight - 100) / (bottom - top + 150),
+        (element.clientWidth - 32) / (right - left),
+        (element.clientHeight - 125) / (bottom - top),
       ),
     );
     setViewport({
@@ -96,7 +142,7 @@ export function Graph({
         y: (310 - (top + bottom) / 2) * nextScale - 20,
       },
     });
-  }, []);
+  }, [palace]);
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -113,11 +159,27 @@ export function Graph({
         for (const entry of entries) {
           const element = entry.target as HTMLButtonElement;
           const id = element.dataset.paperId!;
+          const label = palace ? element.querySelector("strong") : null;
+          // The palace illustration has a transparent hit area. Connect to the
+          // visible nameplate; flat mode still connects to the full card edge.
           const size = entry.borderBoxSize[0];
-          const width = size?.inlineSize ?? element.offsetWidth;
-          const height = size?.blockSize ?? element.offsetHeight;
-          if (next[id]?.width !== width || next[id]?.height !== height) {
-            next[id] = { width, height };
+          const width =
+            label?.offsetWidth ?? size?.inlineSize ?? element.offsetWidth;
+          const height =
+            label?.offsetHeight ?? size?.blockSize ?? element.offsetHeight;
+          const offsetX = label
+            ? label.offsetLeft + width / 2 - element.offsetWidth / 2
+            : 0;
+          const offsetY = label
+            ? label.offsetTop + height / 2 - element.offsetHeight / 2
+            : 0;
+          if (
+            next[id]?.width !== width ||
+            next[id]?.height !== height ||
+            next[id]?.offsetX !== offsetX ||
+            next[id]?.offsetY !== offsetY
+          ) {
+            next[id] = { width, height, offsetX, offsetY };
             changed = true;
           }
         }
@@ -126,7 +188,7 @@ export function Graph({
     });
     nodeElements.current.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [papers]);
+  }, [papers, palace]);
   useEffect(() => {
     if (!expanded || !hasPapers) return;
     const previousOverflow = document.body.style.overflow;
@@ -196,8 +258,8 @@ export function Graph({
   if (!papers.length)
     return (
       <div className="empty-state graph-empty">
-        <Network size={35} />
-        <h2>첫 논문에서 시작되는 지도.</h2>
+        <PaperPortal />
+        <h2>첫 논문이 궁전의 첫 방이 됩니다.</h2>
         <p>
           라이브러리에 논문을 더하면 이곳에 나타나요.
           <br />두 논문을 연결해 나만의 관점을 남겨 보세요.
@@ -208,7 +270,7 @@ export function Graph({
     <div style={{ height: expanded ? placeholderHeight : undefined }}>
       <div
         ref={canvas}
-        className={`graph-canvas${expanded ? " is-expanded" : ""}`}
+        className={`graph-canvas${expanded ? " is-expanded" : ""}${palace ? " is-palace" : " is-map"}${activeNode ? " has-active-node" : ""}`}
         role={expanded ? "dialog" : "region"}
         aria-modal={expanded || undefined}
         aria-label="지식 지도 · 휠 또는 핀치로 확대·축소"
@@ -250,10 +312,14 @@ export function Graph({
       >
         <div
           className="graph-world"
-          style={{
-            transform: `translate(${pan.x}px,${pan.y}px) scale(${scale})`,
-          }}
+          style={
+            {
+              transform: `translate(${pan.x}px,${pan.y}px) scale(${scale})`,
+              "--graph-label-size": `${Math.min(30, Math.max(16, 11 / scale))}px`,
+            } as CSSProperties
+          }
         >
+          <PalaceCourtyard className="graph-architecture" />
           <svg viewBox="0 0 880 620" className="graph-edges" aria-hidden="true">
             <defs>
               <marker
@@ -275,12 +341,31 @@ export function Graph({
               if (!a || !b || !nodeSizes[e.source] || !nodeSizes[e.target])
                 return null;
               const curve = directedEdge(
-                { ...a, ...nodeSizes[e.source] },
-                { ...b, ...nodeSizes[e.target] },
+                {
+                  ...nodeSizes[e.source],
+                  x: a.x + nodeSizes[e.source].offsetX,
+                  y: a.y + nodeSizes[e.source].offsetY,
+                },
+                {
+                  ...nodeSizes[e.target],
+                  x: b.x + nodeSizes[e.target].offsetX,
+                  y: b.y + nodeSizes[e.target].offsetY,
+                },
               );
               if (!curve) return null;
               return (
-                <g key={e.id} data-source={e.source} data-target={e.target}>
+                <g
+                  key={e.id}
+                  data-source={e.source}
+                  data-target={e.target}
+                  className={
+                    activeNode &&
+                    e.source !== activeNode &&
+                    e.target !== activeNode
+                      ? "is-muted"
+                      : "is-connected"
+                  }
+                >
                   <path
                     d={curve.path}
                     markerEnd={`url(#${arrowId})`}
@@ -288,13 +373,17 @@ export function Graph({
                       e.origin === "suggested" ? "5 5" : undefined
                     }
                   />
-                  <text
-                    x={curve.label.x}
-                    y={curve.label.y - 13}
-                    textAnchor="middle"
-                  >
-                    {e.label}
-                  </text>
+                  {(showLabels ||
+                    e.source === activeNode ||
+                    e.target === activeNode) && (
+                    <text
+                      x={curve.label.x}
+                      y={curve.label.y - 13}
+                      textAnchor="middle"
+                    >
+                      {e.label}
+                    </text>
+                  )}
                 </g>
               );
             })}
@@ -309,8 +398,12 @@ export function Graph({
               data-paper-id={p.id}
               title={`${graphPaperLabel(p)}\n${p.title}`}
               aria-label={`${graphPaperLabel(p)} · ${p.title} 읽기`}
-              className={`graph-node ${p.status === "read" ? "is-read" : ""}`}
+              className={`graph-node ${p.status === "read" ? "is-read" : ""}${activeNode === p.id ? " is-active" : ""}${activeNode && !related.has(p.id) ? " is-muted" : ""}`}
               style={{ left: layout[p.id].x, top: layout[p.id].y }}
+              onPointerEnter={() => setActiveNode(p.id)}
+              onPointerLeave={() => setActiveNode(null)}
+              onFocus={() => setActiveNode(p.id)}
+              onBlur={() => setActiveNode(null)}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
@@ -323,14 +416,35 @@ export function Graph({
                 };
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") onSelect(p.id);
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(p.id);
+                }
               }}
             >
+              <PaperPortal />
               <strong>{graphPaperLabel(p)}</strong>
             </button>
           ))}
         </div>
+        <div className="graph-presentation" aria-label="지도 보기 방식">
+          <button aria-pressed={palace} onClick={() => setPalace(true)}>
+            <Landmark size={15} /> 궁전
+          </button>
+          <button aria-pressed={!palace} onClick={() => setPalace(false)}>
+            <Network size={15} /> 지도
+          </button>
+        </div>
         <div className="graph-viewbar">
+          <button
+            className="icon-button graph-label-toggle"
+            title="연결 이름 표시"
+            aria-label="연결 이름 표시"
+            aria-pressed={showLabels}
+            onClick={() => setShowLabels((value) => !value)}
+          >
+            <Tags size={16} />
+          </button>
           {expanded && <kbd>Esc</kbd>}
           <button
             ref={expandButton}
@@ -348,9 +462,22 @@ export function Graph({
             {expanded ? "원래 화면으로" : "보드 크게 보기"}
           </button>
         </div>
-        <div className="graph-legend">
-          <i /> 나의 논문
-          <span>화살표는 연결 방향 · 드래그로 배치 · 휠/핀치로 확대</span>
+        <div className="graph-insight" aria-live="polite" aria-atomic="true">
+          <BookOpen size={15} aria-hidden="true" />
+          <div>
+            <strong>
+              {activePaper
+                ? graphPaperLabel(activePaper)
+                : palace
+                  ? "논문이 방이 되고, 연결이 길이 되는 곳"
+                  : "나의 논문과 그 사이의 연결"}
+            </strong>
+            <span>
+              {activePaper
+                ? activePaper.title
+                : "논문을 눌러 읽기 · 드래그로 이동 · 휠로 확대"}
+            </span>
+          </div>
         </div>
         <div className="graph-controls">
           <button
