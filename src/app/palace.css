@@ -1,120 +1,179 @@
-/* Paper Palace: limestone, ivy and the rhythm of an open colonnade. */
+/* An inhabited palace: the room surrounds the interface, edge to edge. */
 :root {
-  --palace-stone: #f3f4ec;
-  --palace-brass: #9b8152;
+  --palace-stone: #f5f1e7;
+  --palace-brass: #92764b;
   --palace-ivy: #203f35;
 }
 .palace-site {
-  background: #f6f6ef;
+  background: #f6f4ed;
 }
 .palace-header {
-  position: relative;
-  border-bottom: 1px solid #d9decc;
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 5;
+  max-width: none;
+  padding-inline: max(48px, calc((100vw - 1320px) / 2));
+  border-bottom: 1px solid #4f493324;
+  background: linear-gradient(#f8f4eeda, #f8f4eea6);
 }
 .palace-header::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  left: 64px;
-  right: 64px;
-  border-bottom: 1px solid #e5e7db;
+  display: none;
 }
 .palace-header .brand {
   color: #284237;
 }
+.palace-header nav > a:not(.button) {
+  color: #3b4c3e;
+}
 .palace-hero {
-  min-height: 730px;
-  padding-top: 40px;
-  padding-bottom: 48px;
-  grid-template-columns: 0.9fr 1.2fr;
-  gap: 24px;
+  position: relative;
+  isolation: isolate;
+  max-width: none;
+  min-height: max(800px, 100svh);
+  padding: 250px max(48px, calc((100vw - 1320px) / 2)) 64px;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(35px, 6vw, 110px);
+  align-items: end;
+  background: #dcd0b9;
+}
+.palace-hero::before,
+.palace-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.palace-hero::before {
+  background: url("/images/palace-interior.webp") center 47% / cover no-repeat;
+}
+.palace-hero::after {
+  background:
+    linear-gradient(
+      90deg,
+      #f6f1e7dc 0%,
+      #f6f1e7ba 29%,
+      #f6f1e728 58%,
+      #f6f1e700 100%
+    ),
+    linear-gradient(0deg, #f6f1e7e0 0%, #f6f1e710 42%, transparent 100%);
 }
 .palace-hero-copy {
   position: relative;
-  padding-top: 80px;
-  padding-bottom: 32px;
-  align-self: start;
-}
-.hero-arch {
-  position: absolute;
-  width: 350px;
-  height: 440px;
-  top: 0;
-  left: -38px;
-  color: #b9c6ae;
-  opacity: 0.28;
-  pointer-events: none;
+  padding: 0 0 35px;
+  align-self: end;
 }
 .palace-hero h1 {
-  position: relative;
-  font-size: clamp(42px, 4.3vw, 65px);
+  font-size: clamp(40px, 4.15vw, 66px);
   font-weight: 500;
   letter-spacing: -0.065em;
-  line-height: 1.34;
-  margin-top: 24px;
+  line-height: 1.35;
+  margin-top: 22px;
+  color: #263d30;
 }
-.hero-invitation,
-.palace-intro,
-.hero-enter,
-.hero-assurance {
-  position: relative;
+.palace-hero h1 br {
+  display: initial;
 }
 .hero-invitation {
-  color: #6c795e;
+  color: #4e5d44;
+  font-size: 12px;
+  letter-spacing: 0.03em;
 }
 .hero-invitation > span {
   width: 5px;
   height: 5px;
   border-radius: 0;
   transform: rotate(45deg);
-  background: #a28b58;
+  background: #92764b;
 }
 .palace-intro {
   font-size: 14px;
-  line-height: 1.9;
-  max-width: 360px;
+  line-height: 2;
+  max-width: 390px;
+  color: #43523f;
 }
 .palace-hero .hero-enter {
-  border-radius: 3px 14px 3px 3px;
-  background: #274e3c;
-  border-color: #274e3c;
+  border-radius: 3px;
+  background: #274733;
+  border-color: #274733;
+  box-shadow: 0 6px 18px #2939201a;
+}
+.hero-assurance {
+  color: #4e5e48;
 }
 .palace-principle {
-  border-block-color: #d9decc;
+  border-block-color: #ded9c9;
+  background: #f6f4ed;
 }
 .palace-principle > span {
   color: #496448;
 }
 .palace-section-heading h2,
-.palace-ownership h2,
 .palace-faq h2 {
   color: #2c4538;
 }
-.palace-invite {
+.palace-reading {
+  position: relative;
+}
+.palace-ownership {
   position: relative;
   isolation: isolate;
-  border-radius: 180px 180px 10px 10px;
-  border: 1px solid #c8d0ba;
-  background: #e8eddf;
+  max-width: none;
+  padding: 96px max(48px, calc((100vw - 1320px) / 2));
+  min-height: 460px;
+  background: #243a2c;
+  color: #fcf7e9;
   overflow: hidden;
-  padding-top: 75px;
 }
-.palace-invite::before {
+.palace-ownership::before {
   content: "";
   position: absolute;
-  inset: 10px;
-  border: 1px solid #c8d0ba;
-  border-radius: inherit;
+  inset: 0;
   z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, #1e3429f0, #20382bd4 60%, #243d2cd9),
+    url("/images/palace-interior.webp") center 55% / cover;
+}
+.palace-ownership h2 {
+  color: #fcf7e9;
+}
+.ownership-copy > p,
+.ownership-facts dd {
+  color: #d7ddc9;
+}
+.ownership-facts > div {
+  border-bottom-color: #d7ceaa40;
+}
+.ownership-mark svg {
+  height: auto;
+  aspect-ratio: 850 / 750;
+  overflow: hidden;
+  opacity: 0.8;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+.ownership-link {
+  color: #f0ddb0;
+}
+.palace-invite {
+  position: relative;
+  border: 1px solid #d8d1be;
+  border-radius: 2px;
+  background: #ece8dc;
+  padding: 48px;
 }
 .palace-footer {
-  border-top-color: #d3dbc7;
+  border-top-color: #d8d1be;
 }
 
-/* The entrance is the same architectural model used by the working graph. */
+/* Real, usable paper objects in the room; the architecture is never a model. */
 .research-preview {
   height: auto;
-  min-height: 660px;
+  width: 100%;
+  max-width: 510px;
+  min-height: 0;
+  justify-self: end;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -123,21 +182,22 @@
   overflow: visible;
 }
 .folio-topline {
-  padding: 0 20px;
-  color: #64715b;
+  padding: 0 2px;
+  color: #344c36;
   font-size: 11px;
+  text-shadow: 0 1px 8px #fffbef;
 }
 .folio-topline > span:last-child {
-  color: #68715f;
+  color: #4e5e45;
 }
 .folio-map {
   position: relative;
+  inset: auto;
   height: auto;
   width: 100%;
-  aspect-ratio: 880/660;
-  margin-top: 4px;
+  aspect-ratio: 500/230;
+  margin: 8px 0 0;
 }
-.folio-map > .palace-courtyard,
 .entrance-paths {
   position: absolute;
   inset: 0;
@@ -148,54 +208,50 @@
 }
 .entrance-paths path {
   fill: none;
-  stroke: #9b8152;
+  stroke: #5b6843;
   stroke-width: 1.5;
-  opacity: 0.7;
 }
 .folio-node {
   display: flex;
   flex-direction: column;
   position: absolute;
   gap: 0;
-  min-width: 90px;
+  min-width: 0;
   border: 0;
   background: transparent;
-  padding: 0 9px 4px;
+  padding: 0;
   box-shadow: none;
-  border-radius: 4px;
+  border-radius: 3px;
   transform: translate(-50%, -50%);
   color: #34513d;
 }
 .folio-node-0 {
-  left: 31.82%;
-  top: 53.79%;
+  left: 23%;
+  top: 32.17%;
 }
 .folio-node-1 {
-  left: 65.34%;
-  top: 52.27%;
+  left: 75%;
+  top: 36.52%;
 }
 .folio-node-2 {
-  left: 50%;
-  top: 71.21%;
-}
-.folio-node > .paper-portal {
-  width: 74px;
-  height: 57px;
-  filter: drop-shadow(0 5px 4px #334b3812);
-  transition: transform 320ms var(--ease-out);
+  left: 52%;
+  top: 79.13%;
 }
 .folio-node > span {
   font-family: var(--serif);
-  font-size: 18px;
-  padding: 3px 10px;
-  background: #f7f8ee;
-  border: 1px solid #b8c6a6;
-  border-radius: 2px;
-  box-shadow: 0 2px 0 #d1d8c4;
+  font-size: 20px;
+  padding: 12px 20px;
+  background: #fcf9ee;
+  border: 1px solid #ad9c75;
+  border-radius: 3px;
+  box-shadow:
+    2px 3px 0 #e9e1cc,
+    3px 4px 0 #bbae8e,
+    0 9px 16px #3f38291f;
   transition:
     color 180ms,
     background-color 180ms,
-    border-color 180ms;
+    box-shadow 220ms;
 }
 .folio-node > small {
   display: none;
@@ -208,33 +264,29 @@
   transform: translate(-50%, -50%);
 }
 .folio-node.selected > span {
-  background: #31573e;
-  border-color: #31573e;
-  color: #fffef2;
-}
-.folio-node:hover > .paper-portal,
-.folio-node.selected > .paper-portal {
-  transform: translateY(-5px);
-}
-.folio-node.selected .portal-opening {
-  fill: #55774d;
+  background: #294b36;
+  border-color: #294b36;
+  color: #fffbed;
+  box-shadow:
+    2px 3px 0 #bba881,
+    3px 4px 0 #6c7757,
+    0 12px 20px #303e2926;
 }
 .folio-paper {
   position: relative;
-  top: auto;
-  bottom: auto;
-  left: auto;
-  right: auto;
-  width: calc(100% - 60px);
-  margin: -24px auto 0;
-  padding: 20px 24px 16px;
-  border-radius: 2px 2px 10px 2px;
-  border: 1px solid #ccd4c0;
+  inset: auto;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 23px 27px 18px;
+  border-radius: 3px;
+  border: 1px solid #c2b695;
+  background: #fbf8eeed;
+  backdrop-filter: blur(14px);
   box-shadow:
-    4px 4px 0 #ecefe2,
-    5px 5px 0 #cdd5c0,
-    0 12px 30px #25432c08;
-  min-height: 205px;
+    0 18px 45px #51482f1c,
+    3px 4px 0 #e8e1cf,
+    4px 5px 0 #c5b99b;
+  min-height: 230px;
 }
 .folio-paper::before,
 .folio-paper::after {
@@ -243,22 +295,29 @@
 .folio-paper h3 {
   font-size: 22px;
   margin: 12px 0 10px;
+  color: #293e2d;
 }
 .folio-paper-meta {
-  color: #758266;
+  color: #57634a;
 }
 .folio-paper .folio-topic {
   margin-top: 10px;
+  color: #405339;
+}
+.folio-paper > p:not(.folio-topic) {
+  color: #56604c;
 }
 .folio-paper-bottom {
   margin-top: 13px;
   padding-top: 12px;
+  color: #526244;
+  border-top-color: #ded8c7;
 }
 .folio-caption {
   position: static;
-  margin: 20px 30px 0;
+  margin: 15px 0 0;
   text-align: right;
-  color: #737e65;
+  color: #536149;
 }
 
 /* A familiar reading tool inside an architectural frame. */
@@ -363,42 +422,43 @@
     inset 0 -2px #ae9562;
 }
 
-/* Palace view keeps the graph's untransformed screen coordinates and native buttons. */
+/* The room belongs to the viewport. Only papers and connections pan/zoom. */
 .graph-canvas {
-  height: min(720px, calc(100dvh - 280px));
-  min-height: 480px;
-  border-radius: 12px;
-  background-color: #f5f6ef;
-  border-color: #cdd6bf;
+  height: min(760px, calc(100dvh - 250px));
+  min-height: 510px;
+  border-radius: 6px;
+  background-color: #f5f4ec;
+  border-color: #cecbb9;
 }
 .graph-canvas.is-palace {
-  background-image: none;
-  background-color: #edf1e6;
-  box-shadow: inset 0 0 100px #dbe3cf60;
+  background: #e0d5bf url("/images/palace-interior.webp") center 53% / cover
+    no-repeat;
+  box-shadow: inset 0 0 80px #fff9e721;
 }
 .graph-canvas.is-palace::before {
   content: "";
   position: absolute;
-  inset: 9px;
-  border: 1px solid #bac9a64a;
-  border-radius: 6px;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 50% 52%,
+      #fcf8ece8 0%,
+      #fcf8ecca 24%,
+      #fcf8ec70 59%,
+      #fcf8ec10 100%
+    ),
+    linear-gradient(
+      0deg,
+      #f4edddd9,
+      transparent 23%,
+      transparent 80%,
+      #f4eddd65
+    );
   pointer-events: none;
 }
 .graph-canvas.is-expanded {
   height: 100dvh;
   min-height: 0;
-}
-.graph-architecture {
-  position: absolute;
-  left: 0;
-  top: -10px;
-  width: 880px;
-  height: 660px;
-  pointer-events: none;
-  transition: opacity 300ms;
-}
-.is-map .graph-architecture {
-  opacity: 0;
 }
 .graph-edges {
   position: absolute;
@@ -408,26 +468,26 @@
   transition: opacity 180ms;
 }
 .graph-edges path {
-  stroke: #9a855e;
+  stroke: #7e7757;
   stroke-width: 1.65;
 }
 .graph-edges .graph-arrow {
-  fill: #8b754e;
+  fill: #6b6e4d;
   stroke: none;
 }
 .graph-edges text {
   font-size: max(11px, calc(var(--graph-label-size, 16px) * 0.72));
-  fill: #526448;
-  stroke: #edf1e6;
+  fill: #3d5336;
+  stroke: #f8f4e8;
   stroke-width: 5px;
   stroke-linejoin: round;
 }
 .graph-canvas.has-active-node .graph-edges .is-connected > path {
-  stroke: #607a46;
+  stroke: #3f653b;
   stroke-width: 2.3;
 }
 .graph-edges .is-muted {
-  opacity: 0.15;
+  opacity: 0.16;
 }
 .graph-node {
   max-width: max(140px, calc(var(--graph-label-size, 16px) * 6.7));
@@ -437,55 +497,43 @@
     border-color 180ms,
     box-shadow 180ms;
 }
-.graph-node > .paper-portal {
-  display: none;
-}
 .graph-node strong {
   font-size: var(--graph-label-size, 16px);
 }
 .graph-node.is-muted {
-  opacity: 0.35;
+  opacity: 0.38;
 }
 .graph-node.is-active {
   z-index: 3;
 }
 .is-palace .graph-node {
-  min-width: 104px;
+  min-width: 90px;
   max-width: max(164px, calc(var(--graph-label-size, 16px) * 6.7));
-  min-height: 96px;
-  padding: 0 7px 6px;
+  min-height: 0;
+  padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 3px;
   background: transparent;
   box-shadow: none;
 }
-.is-palace .graph-node > .paper-portal {
-  display: block;
-  height: 64px;
-  width: 84px;
-  margin: 0 auto -1px;
-  overflow: visible;
-  transition: transform 240ms var(--ease-out);
-}
 .is-palace .graph-node strong {
   display: block;
-  padding: 4px 12px 5px;
-  background: #fcfcf3;
-  border: 1px solid #b9c7a8;
+  padding: 12px 20px;
+  background: #fffcf1;
+  border: 1px solid #a99d7d;
   border-radius: 3px;
   box-shadow:
-    0 2px 0 #d4dcc7,
-    0 4px 6px #354a3010;
-  color: #365538;
+    2px 3px 0 #e6dfc9,
+    3px 4px 0 #b7aa88,
+    0 8px 20px #443d2924;
+  color: #2f4a32;
   transition:
     background-color 180ms,
-    color 180ms;
-}
-.is-palace .graph-node.is-read .portal-opening {
-  fill: #8ca779;
+    color 180ms,
+    box-shadow 180ms;
 }
 .is-palace .graph-node.is-read strong {
-  background: #e2ead5;
+  background: #e5ead9;
 }
 .is-palace .graph-node:hover,
 .is-palace .graph-node.is-active {
@@ -493,39 +541,26 @@
   border: 0;
   box-shadow: none;
 }
-.is-palace .graph-node.is-active > .paper-portal {
-  transform: translateY(-5px);
-}
-.is-palace .graph-node.is-active .portal-opening {
-  fill: #53754c;
-}
 .is-palace .graph-node.is-active strong {
-  background: #34563d;
-  border-color: #34563d;
-  color: #fffef5;
+  background: #2f5036;
+  border-color: #2f5036;
+  color: #fffbed;
   box-shadow:
-    0 2px 0 #203f2b,
-    0 5px 10px #354a3020;
-}
-.portal-paper {
-  transform-origin: 45px 55px;
-  transition: transform 260ms var(--ease-out);
-}
-.graph-node.is-active .portal-paper,
-.folio-node.selected .portal-paper {
-  transform: translateY(-2px) rotate(-4deg);
+    2px 3px 0 #b5a47a,
+    3px 4px 0 #687657,
+    0 12px 24px #2c432b30;
 }
 .graph-presentation {
   position: absolute;
-  top: 15px;
+  top: 16px;
   left: 16px;
   display: flex;
   padding: 3px;
   gap: 2px;
-  background: #fcfdf6ed;
-  border: 1px solid #c9d3bc;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px #30432e06;
+  background: #fcf9eff2;
+  border: 1px solid #c6bfa7;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px #423e2910;
 }
 .graph-presentation button {
   display: flex;
@@ -534,9 +569,9 @@
   gap: 7px;
   font-size: 12px;
   font-weight: 500;
-  color: #5e7150;
+  color: #506344;
   border: 0;
-  border-radius: 5px;
+  border-radius: 3px;
   padding: 7px 12px;
   background: transparent;
   transition:
@@ -544,29 +579,28 @@
     color 180ms;
 }
 .graph-presentation button[aria-pressed="true"] {
-  color: #fffef5;
-  background: #36573d;
-  box-shadow: 0 2px 3px #27412615;
+  color: #fffbed;
+  background: #365139;
 }
 .graph-presentation button:hover:not([aria-pressed="true"]) {
-  background: #e5ecd9;
+  background: #e5e8d9;
 }
 .graph-viewbar .button,
 .graph-label-toggle {
-  background: #fcfdf6ed;
-  border-color: #c9d3bc;
-  color: #49643c;
+  background: #fcf9eff2;
+  border-color: #c6bfa7;
+  color: #42583b;
 }
 .graph-label-toggle {
-  border: 1px solid #c9d3bc;
+  border: 1px solid #c6bfa7;
 }
 .graph-label-toggle[aria-pressed="true"] {
-  background: #e0e8d4;
+  background: #e2e7d6;
 }
 .graph-controls {
-  border-color: #c9d3bc;
-  background: #fcfdf6f5;
-  color: #4f6a40;
+  border-color: #c6bfa7;
+  background: #fcf9eff2;
+  color: #42583b;
 }
 .graph-insight {
   position: absolute;
@@ -578,8 +612,9 @@
   gap: 11px;
   align-items: center;
   pointer-events: none;
-  color: #516946;
+  color: #435736;
   min-height: 36px;
+  text-shadow: 0 1px 5px #fff9e7;
 }
 .graph-insight > svg {
   flex-shrink: 0;
@@ -595,102 +630,97 @@
   text-overflow: ellipsis;
 }
 .graph-insight strong {
-  color: #435d38;
+  color: #364c2f;
   font-size: 12px;
   font-weight: 550;
 }
 .graph-insight span {
-  color: #718061;
+  color: #536449;
   font-size: 10px;
   margin-top: 5px;
 }
-.graph-empty > .paper-portal {
-  width: 110px;
-  height: 84px;
-  margin: 0 auto 16px;
-}
 .graph-empty {
-  background: #f1f3e8;
+  background:
+    linear-gradient(#f7f2e7bf, #f7f2e7f2),
+    url("/images/palace-interior.webp") center / cover;
 }
-@media (min-width: 1440px) {
+.graph-empty > svg {
+  margin: 0 auto 20px;
+  color: #526344;
+}
+@media (min-width: 1600px) {
   .palace-hero {
-    min-height: 800px;
+    padding-top: 290px;
+    padding-bottom: 90px;
   }
-  .research-preview {
-    min-height: 690px;
+}
+@media (min-width: 851px) and (max-height: 800px) {
+  .palace-hero {
+    min-height: max(720px, 100svh);
+    padding-top: 140px;
+    padding-bottom: 38px;
   }
 }
 @media (max-width: 1100px) {
   .palace-hero {
-    min-height: 650px;
-    grid-template-columns: 0.85fr 1.15fr;
+    gap: 38px;
+    padding-inline: 40px;
   }
   .palace-hero h1 {
-    font-size: 45px;
+    font-size: 40px;
   }
-  .research-preview {
-    min-height: 590px;
+  .palace-header {
+    padding-inline: 40px;
   }
   .folio-paper {
-    width: calc(100% - 30px);
-    margin-top: -5px;
-    padding: 18px;
+    padding: 20px;
+    min-height: 250px;
   }
   .folio-paper h3 {
     font-size: 20px;
   }
-  .folio-node {
-    min-width: 75px;
-  }
-  .folio-node > .paper-portal {
-    width: 60px;
-    height: 46px;
-  }
   .folio-node > span {
-    font-size: 15px;
-    padding-inline: 7px;
+    font-size: 18px;
+    padding: 11px 16px;
   }
-  .hero-arch {
-    width: 310px;
-    left: -25px;
+  .palace-ownership {
+    padding: 72px 40px;
   }
 }
 @media (max-width: 850px) {
   .palace-hero {
     grid-template-columns: 1fr;
-    padding-top: 35px;
-    gap: 20px;
+    padding-top: 270px;
+    gap: 48px;
+  }
+  .palace-hero::before {
+    background-size: auto 850px;
+    background-position: center top;
+    background-color: #e5dcc8;
+  }
+  .palace-hero::after {
+    background: linear-gradient(
+      0deg,
+      #f5f0e4 0%,
+      #f5f0e4ed 30%,
+      #f5f0e490 65%,
+      transparent 90%
+    );
   }
   .palace-hero-copy {
-    padding-top: 40px;
+    padding: 0;
     max-width: 570px;
   }
   .palace-hero h1 {
-    font-size: 56px;
-  }
-  .hero-arch {
-    left: -15px;
-    top: -15px;
-    height: 390px;
+    font-size: 48px;
   }
   .research-preview {
-    width: 100%;
-    max-width: 630px;
-    min-height: 0;
+    max-width: 550px;
     justify-self: center;
   }
-  .folio-map {
-    margin-top: 20px;
-  }
   .folio-paper {
-    margin-top: -20px;
-  }
-  .folio-node > .paper-portal {
-    width: 74px;
-    height: 57px;
-  }
-  .folio-node > span {
-    font-size: 17px;
+    min-height: 0;
+    margin-top: 8px;
   }
   .graph-canvas {
     height: calc(100dvh - 265px);
@@ -714,55 +744,54 @@
     padding: 7px 9px;
     min-height: 34px;
   }
+  .palace-ownership {
+    padding: 65px 32px;
+  }
 }
 @media (max-width: 600px) {
-  .palace-header::after {
-    left: 20px;
-    right: 20px;
+  .palace-header {
+    padding-inline: 22px;
   }
   .palace-hero {
-    padding-top: 24px;
+    padding: 245px 24px 40px;
+    gap: 42px;
+  }
+  .palace-hero::before {
+    background-size: auto 740px;
   }
   .palace-hero h1 {
-    font-size: 43px;
+    font-size: clamp(33px, 8.5vw, 43px);
+  }
+  .hero-invitation {
+    font-size: 11px;
   }
   .palace-intro {
     font-size: 13px;
     max-width: 330px;
   }
-  .hero-arch {
-    left: -9px;
-    width: 270px;
-    height: 340px;
-  }
-  .palace-hero-copy {
-    padding-top: 30px;
-    padding-bottom: 10px;
+  .palace-intro br {
+    display: none;
   }
   .folio-topline {
-    padding-inline: 2px;
+    padding: 0;
+  }
+  .folio-topline > span:first-child {
+    font-size: 11px;
   }
   .folio-map {
-    width: calc(100% + 24px);
-    margin-inline: -12px;
-  }
-  .folio-node {
-    min-width: 65px;
-    padding-inline: 3px;
-  }
-  .folio-node > .paper-portal {
-    width: 58px;
-    height: 44px;
+    inset: auto;
+    width: 100%;
+    margin: 8px 0 0;
+    height: auto;
   }
   .folio-node > span {
-    font-size: 14px;
-    padding: 3px 6px;
+    font-size: 16px;
+    padding: 10px 14px;
   }
   .folio-paper {
-    width: calc(100% - 8px);
-    margin-top: 6px;
-    padding: 16px 19px;
-    min-height: 210px;
+    width: 100%;
+    inset: auto;
+    padding: 20px;
   }
   .folio-paper h3 {
     font-size: 21px;
@@ -774,9 +803,12 @@
     margin: 17px 0 0;
     font-size: 9px;
   }
+  .palace-ownership {
+    padding: 55px 24px;
+  }
   .palace-invite {
-    border-radius: 110px 110px 8px 8px;
-    padding-top: 65px;
+    padding: 32px 25px;
+    border-radius: 3px;
   }
   .graph-presentation {
     top: 12px;
@@ -795,7 +827,6 @@
     top: 13px;
     right: 10px;
   }
-
   .graph-viewbar .button {
     font-size: 0;
     width: 33px;
@@ -830,9 +861,6 @@
 @media (prefers-reduced-motion: reduce) {
   .graph-node,
   .graph-edges g,
-  .graph-architecture,
-  .paper-portal,
-  .portal-paper,
   .folio-node > span {
     transition: none !important;
   }

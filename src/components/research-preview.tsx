@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PalaceCourtyard, PaperPortal } from "./palace-architecture";
 import {
   ArrowUpRight,
   BookOpen,
@@ -46,13 +45,12 @@ export function ResearchPreview() {
         <span>미리보기</span>
       </div>
       <div className="folio-map">
-        <PalaceCourtyard />
         <svg
-          viewBox="0 0 880 660"
+          viewBox="0 0 500 230"
           className="entrance-paths"
           aria-hidden="true"
         >
-          <path d="M280 355Q425 285 575 345M575 345Q570 440 440 470M280 355Q280 445 440 470" />
+          <path d="M115 74Q250 0 375 84M375 84Q390 180 260 182M115 74Q110 180 260 182" />
         </svg>
         {ideas.map((item, index) => (
           <button
@@ -61,7 +59,6 @@ export function ResearchPreview() {
             aria-pressed={active === index}
             onClick={() => setActive(index)}
           >
-            <PaperPortal />
             <span>{item.name}</span>
             <small>{item.year}</small>
           </button>

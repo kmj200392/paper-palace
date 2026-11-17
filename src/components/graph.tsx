@@ -27,7 +27,6 @@ import {
 } from "@/lib/graph-viewport";
 import { directedEdge } from "@/lib/graph-edge";
 import { graphPaperLabel } from "@/lib/paper-labels";
-import { PalaceCourtyard, PaperPortal } from "./palace-architecture";
 export function Graph({
   papers,
   edges,
@@ -111,22 +110,10 @@ export function Graph({
     const element = canvas.current;
     const points = Object.values(layoutRef.current);
     if (!element || !points.length) return;
-    const left = Math.min(
-      ...points.map((p) => p.x - 85),
-      ...(palace ? [60] : []),
-    );
-    const right = Math.max(
-      ...points.map((p) => p.x + 85),
-      ...(palace ? [820] : []),
-    );
-    const top = Math.min(
-      ...points.map((p) => p.y - 65),
-      ...(palace ? [20] : []),
-    );
-    const bottom = Math.max(
-      ...points.map((p) => p.y + 65),
-      ...(palace ? [625] : []),
-    );
+    const left = Math.min(...points.map((p) => p.x - 85));
+    const right = Math.max(...points.map((p) => p.x + 85));
+    const top = Math.min(...points.map((p) => p.y - 55));
+    const bottom = Math.max(...points.map((p) => p.y + 55));
     const nextScale = Math.max(
       0.15,
       Math.min(
@@ -142,7 +129,7 @@ export function Graph({
         y: (310 - (top + bottom) / 2) * nextScale - 20,
       },
     });
-  }, [palace]);
+  }, []);
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -160,8 +147,7 @@ export function Graph({
           const element = entry.target as HTMLButtonElement;
           const id = element.dataset.paperId!;
           const label = palace ? element.querySelector("strong") : null;
-          // The palace illustration has a transparent hit area. Connect to the
-          // visible nameplate; flat mode still connects to the full card edge.
+          // Connect to the visible paper label, including its measured offset.
           const size = entry.borderBoxSize[0];
           const width =
             label?.offsetWidth ?? size?.inlineSize ?? element.offsetWidth;
@@ -258,7 +244,7 @@ export function Graph({
   if (!papers.length)
     return (
       <div className="empty-state graph-empty">
-        <PaperPortal />
+        <BookOpen size={38} aria-hidden="true" />
         <h2>첫 논문이 궁전의 첫 방이 됩니다.</h2>
         <p>
           라이브러리에 논문을 더하면 이곳에 나타나요.
@@ -319,7 +305,6 @@ export function Graph({
             } as CSSProperties
           }
         >
-          <PalaceCourtyard className="graph-architecture" />
           <svg viewBox="0 0 880 620" className="graph-edges" aria-hidden="true">
             <defs>
               <marker
@@ -422,7 +407,6 @@ export function Graph({
                 }
               }}
             >
-              <PaperPortal />
               <strong>{graphPaperLabel(p)}</strong>
             </button>
           ))}
@@ -469,7 +453,7 @@ export function Graph({
               {activePaper
                 ? graphPaperLabel(activePaper)
                 : palace
-                  ? "논문이 방이 되고, 연결이 길이 되는 곳"
+                  ? "생각이 이어지는 나의 서재"
                   : "나의 논문과 그 사이의 연결"}
             </strong>
             <span>

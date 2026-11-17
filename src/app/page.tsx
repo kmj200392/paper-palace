@@ -9,7 +9,6 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { PalaceArch } from "@/components/palace-architecture";
 import { MakerCredit } from "@/components/maker-credit";
 import { ResearchPreview, ReadingPreview } from "@/components/research-preview";
 
@@ -29,20 +28,16 @@ export default function Home() {
       <main id="main">
         <section className="palace-hero">
           <div className="palace-hero-copy">
-            <PalaceArch className="hero-arch" />
             <p className="hero-invitation">
               <span aria-hidden="true" /> 읽은 논문으로 지어가는 공간
             </p>
             <h1>
-              한 편씩 쌓아가는
+              생각이 머무는,
               <br />
-              나만의
-              <br />
-              지식 궁전.
+              나만의 지식 궁전.
             </h1>
             <p className="palace-intro">
-              논문은 하나의 방이 되고, 연결은 새로운 길이 됩니다.
-              <br />
+              논문은 하나의 방이 되고, 연결은 새로운 길이 됩니다. <br />
               원문을 읽고 AI와 질문하며 나만의 궁전을 채워 보세요.
             </p>
             <Link className="button primary hero-enter" href="/app/">
