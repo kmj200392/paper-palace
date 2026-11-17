@@ -1,98 +1,20 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  ArrowRight,
-  Github,
-  Plus,
-  BookOpen,
-  Network,
-  MessageSquare,
-} from "lucide-react";
+import { ArrowUpRight, ArrowRight, Github, Plus } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { MakerCredit } from "@/components/maker-credit";
-import { ResearchPreview, ReadingPreview } from "@/components/research-preview";
+import {
+  LandingHeader,
+  PalaceEntrance,
+  ProductJourney,
+} from "@/components/landing-experience";
 
 export default function Home() {
   return (
     <div className="palace-site">
-      <header className="palace-header">
-        <Brand />
-        <nav aria-label="주 메뉴">
-          <a href="#reading">읽는 방식</a>
-          <a href="#your-library">나의 라이브러리</a>
-          <Link className="button primary small" href="/app/">
-            연구 공간 열기 <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </nav>
-      </header>
+      <LandingHeader />
       <main id="main">
-        <section className="palace-hero">
-          <div className="palace-hero-copy">
-            <p className="hero-invitation">
-              <span aria-hidden="true" /> 읽은 논문으로 지어가는 공간
-            </p>
-            <h1>
-              생각이 머무는,
-              <br />
-              나만의 지식 궁전.
-            </h1>
-            <p className="palace-intro">
-              논문은 하나의 방이 되고, 연결은 새로운 길이 됩니다. <br />
-              원문을 읽고 AI와 질문하며 나만의 궁전을 채워 보세요.
-            </p>
-            <Link className="button primary hero-enter" href="/app/">
-              나의 연구 공간 열기 <ArrowUpRight size={19} aria-hidden="true" />
-            </Link>
-            <p className="hero-assurance">
-              <Github size={15} aria-hidden="true" /> GitHub으로 시작하는 무료
-              연구 공간
-            </p>
-          </div>
-          <ResearchPreview />
-        </section>
-        <div className="palace-principle">
-          <span>Read. Connect. Remember.</span>
-          <p>기억해야 할 논문보다, 이어갈 생각이 더 많아지도록.</p>
-        </div>
-        <section className="palace-reading" id="reading">
-          <div className="palace-section-heading">
-            <h2>
-              원문 곁에,
-              <br />
-              이해를 돕는 한 페이지.
-            </h2>
-            <p>
-              연구 배경부터 실험 결과까지 맥락을 잡고,
-              <br />
-              궁금한 문장은 바로 질문하세요.
-              <br />
-              그림과 수식은 원본 PDF 그대로 읽습니다.
-            </p>
-          </div>
-          <ReadingPreview />
-          <div className="reading-annotations">
-            <p>
-              <BookOpen size={18} aria-hidden="true" />
-              <span>
-                <strong>근거를 따라 읽기</strong>정리에서 원문의 해당 위치로
-              </span>
-            </p>
-            <p>
-              <MessageSquare size={18} aria-hidden="true" />
-              <span>
-                <strong>문장에서 시작하는 질문</strong>PDF를 드래그해 AI에게
-                물어보기
-              </span>
-            </p>
-            <p>
-              <Network size={18} aria-hidden="true" />
-              <span>
-                <strong>논문 너머의 연결</strong>내 그래프에서 다음 논문
-                발견하기
-              </span>
-            </p>
-          </div>
-        </section>
+        <PalaceEntrance />
+        <ProductJourney />
         <section className="palace-ownership" id="your-library">
           <div className="ownership-mark" aria-hidden="true">
             <svg viewBox="240 200 850 750">
