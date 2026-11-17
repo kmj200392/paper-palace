@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker from "../worker/index";
+import worker from "./worker-fixture";
 import { ArxivSearch } from "../worker/arxiv-search";
 import {
   arxivSearchQuery,
@@ -89,6 +89,8 @@ const feed = (id = "2601.00003v2") =>
   `<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org/abs/${id}</id><title>Memory &amp; Agents</title><summary>Compress &#x3b1; memory.</summary><published>2026-01-01T00:00:00Z</published><author><name>A &amp; B</name></author><category term="cs.AI" /></entry></feed>`;
 const testKey = "sk-TEST-ONLY-DISCOVERY-KEY";
 const env = {
+  OPENAI_API_KEY: "sk-TEST-ONLY-DISCOVERY-KEY",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
@@ -114,7 +116,11 @@ const input = () => ({
   model: "gpt-6-luna",
   apiKey: testKey,
 });
-const request = (data: unknown, origin = env.APP_ORIGIN, cookie = "") =>
+const request = (
+  data: unknown,
+  origin = env.APP_ORIGIN,
+  cookie = "test-session",
+) =>
   new Request(env.APP_ORIGIN + "/api/recommend", {
     method: "POST",
     headers: {
@@ -239,8 +245,8 @@ test("explicit adoption preserves current notes, skips removed connection target
   const changed = { ...l, papers: l.papers.slice(1), edges: [] };
   assert.equal(addRecommendation(changed, rec, true).edges.length, 0);
 });
-test("both providers perform only plan and rank, pass graph context, exclude owned versions and never send keys or notes in prompts", async (t) => {
-  for (const provider of ["openai", "anthropic"]) {
+test("server-funded OpenAI perform only plan and rank, pass graph context, exclude owned versions and never send keys or notes in prompts", async (t) => {
+  for (const provider of ["openai"]) {
     let calls = 0;
     const mock = t.mock.method(
       globalThis,
@@ -325,13 +331,18 @@ test("discovery rejects cross-origin, invalid graph, missing credentials and sta
     400,
   );
   assert.equal(
-    (await worker.fetch(request({ ...input(), apiKey: "" }), env)).status,
-    400,
+    (
+      await worker.fetch(
+        request({ ...input(), apiKey: "" }, env.APP_ORIGIN, ""),
+        env,
+      )
+    ).status,
+    401,
   );
   assert.equal(
     (
       await worker.fetch(
-        request({ ...input(), apiKey: "", accountId: 42 }),
+        request({ ...input(), apiKey: "", accountId: 42 }, env.APP_ORIGIN, ""),
         env,
       )
     ).status,

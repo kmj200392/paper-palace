@@ -1,15 +1,5 @@
 import { z } from "zod";
-import {
-  aiProviderSchema,
-  aiModelSchema,
-  apiKeySchema,
-} from "../src/lib/ai-settings";
-import {
-  readAccountKey,
-  saveAccountKey,
-  keyMetadata,
-  deleteAccountKeyCookie,
-} from "./ai-credentials";
+import { HOSTED_AI_MODEL } from "../src/lib/ai-settings";
 import {
   parseArxivId,
   librarySchema,
@@ -75,6 +65,10 @@ interface Env {
   GITHUB_CLIENT_SECRET: string;
   GITHUB_APP_SLUG: string;
   SESSION_SECRET: string;
+  OPENAI_API_KEY?: string;
+  AI_RATE_LIMIT?: {
+    limit: (input: { key: string }) => Promise<{ success: boolean }>;
+  };
   ARXIV_SEARCH?: SearchNamespace;
   GITHUB_SESSIONS?: SessionNamespace;
 }
@@ -231,13 +225,13 @@ async function modelJSON(
     const status = response.status;
     await response.body?.cancel();
     throw new HttpError(
-      status === 401 ? 400 : 502,
+      status === 429 ? 429 : 503,
       status === 401
-        ? "API 키를 확인해 주세요."
+        ? "AI 서비스 연결을 잠시 확인하지 못했어요. 잠시 후 다시 시도해 주세요."
         : status === 429
-          ? "AI 제공자의 사용 한도나 잔액을 확인해 주세요."
+          ? "AI 요청이 많아 잠시 쉬고 있어요. 잠시 후 다시 시도해 주세요."
           : status === 400
-            ? "선택한 모델이 구조화 출력을 지원하는지 확인해 주세요."
+            ? "AI 서비스가 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
             : "AI 제공자가 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
     );
   }
@@ -248,7 +242,7 @@ async function modelJSON(
   )
     throw new HttpError(
       502,
-      "AI 응답이 완료되지 않았어요. 다시 시도하거나 다른 모델을 선택해 주세요.",
+      "AI 응답이 완료되지 않았어요. 잠시 후 다시 시도해 주세요.",
     );
   const text = openai
     ? result.output
@@ -267,37 +261,35 @@ async function modelJSON(
   return { value: JSON.parse(text), usage: result.usage };
 }
 const aiRequestFields = {
-  provider: aiProviderSchema,
-  model: aiModelSchema,
-  apiKey: z.string().max(500).optional().default(""),
   accountId: z.number().int().positive().optional(),
 };
 async function resolveAIKey(
   req: Request,
   env: Env,
-  input: z.infer<z.ZodObject<typeof aiRequestFields>>,
+  input: { accountId?: number },
 ) {
-  if (input.accountId !== undefined) {
-    const session = await requireSession(req, env);
-    if (session.id !== input.accountId)
-      throw new HttpError(
-        409,
-        "로그인 계정이 바뀌었어요. 새로고침 후 다시 시도해 주세요.",
-      );
-    const key = await readAccountKey(
-      req,
-      env.SESSION_SECRET,
-      session.id,
-      input.provider,
+  const session = await requireSession(req, env);
+  if (input.accountId !== undefined && session.id !== input.accountId)
+    throw new HttpError(
+      409,
+      "로그인 계정이 바뀌었어요. 새로고침 후 다시 시도해 주세요.",
     );
-    if (!key)
-      throw new HttpError(
-        401,
-        "저장된 AI 연결이 없거나 만료됐어요. 설정에서 API 키를 다시 연결해 주세요.",
-      );
-    return { ...input, apiKey: key.apiKey };
-  }
-  return { ...input, apiKey: apiKeySchema.parse(input.apiKey) };
+  if (!env.OPENAI_API_KEY?.trim() || !env.AI_RATE_LIMIT)
+    throw new HttpError(
+      503,
+      "AI 서비스를 준비 중이에요. 잠시 후 다시 시도해 주세요.",
+    );
+  const { success } = await env.AI_RATE_LIMIT.limit({
+    key: `paper-palace:ai:user:${session.id}`,
+  });
+  if (!success)
+    throw new HttpError(429, "AI 요청이 많아요. 잠시 후 다시 시도해 주세요.");
+  // Never accept credentials, provider, or model from the browser or retired cookies.
+  return {
+    provider: "openai" as const,
+    model: HOSTED_AI_MODEL,
+    apiKey: env.OPENAI_API_KEY.trim(),
+  };
 }
 async function analyze(req: Request, env: Env) {
   const schema = z.object({
@@ -586,6 +578,7 @@ export default {
             env.SESSION_SECRET
           ),
           githubAppSlug: env.GITHUB_APP_SLUG,
+          aiConfigured: !!(env.OPENAI_API_KEY?.trim() && env.AI_RATE_LIMIT),
         });
       if (path === "/api/auth/login" && req.method === "GET") {
         if (
@@ -696,75 +689,19 @@ export default {
         return response;
       }
       if (path === "/api/ai-keys") {
-        const session = await requireSession(req, env);
-        if (req.method === "GET") {
-          const keys = await Promise.all(
-            (["openai", "anthropic"] as const).map(async (provider) => {
-              const key = await readAccountKey(
-                req,
-                env.SESSION_SECRET,
-                session.id,
-                provider,
-              );
-              return key ? keyMetadata(key) : null;
-            }),
+        const response = json(
+          {
+            error:
+              "개인 API 키 연결은 더 이상 사용하지 않아요. 새로고침해 주세요.",
+          },
+          410,
+        );
+        for (const provider of ["openai", "anthropic"])
+          response.headers.append(
+            "Set-Cookie",
+            cookie(`__Host-pp-ai-${provider}`, "", 0),
           );
-          return json({
-            userId: session.id,
-            keys: keys.filter((key) => key !== null),
-          });
-        }
-        if (req.method === "PUT" || req.method === "DELETE") {
-          const input = z
-            .object({
-              accountId: z.number().int().positive(),
-              provider: aiProviderSchema,
-              model: aiModelSchema.optional(),
-              apiKey: apiKeySchema.optional(),
-            })
-            .strict()
-            .parse(await body(req, 4000));
-          if (input.accountId !== session.id)
-            throw new HttpError(
-              409,
-              "로그인 계정이 바뀌었어요. 새로고침 후 다시 시도해 주세요.",
-            );
-          if (req.method === "DELETE") {
-            // Do not delete another account's saved cookie from a stale tab.
-            const key = await readAccountKey(
-              req,
-              env.SESSION_SECRET,
-              session.id,
-              input.provider,
-            );
-            const response = json({ ok: true });
-            if (key)
-              response.headers.set(
-                "Set-Cookie",
-                deleteAccountKeyCookie(input.provider),
-              );
-            return response;
-          }
-          const previous = input.apiKey
-            ? null
-            : await readAccountKey(
-                req,
-                env.SESSION_SECRET,
-                session.id,
-                input.provider,
-              );
-          const apiKey = input.apiKey || previous?.apiKey;
-          if (!apiKey || !input.model)
-            throw new HttpError(400, "연결할 API 키와 모델을 입력해 주세요.");
-          const saved = await saveAccountKey(env.SESSION_SECRET, session.id, {
-            provider: input.provider,
-            model: input.model,
-            apiKey,
-          });
-          const response = json({ key: saved.metadata });
-          response.headers.set("Set-Cookie", saved.cookie);
-          return response;
-        }
+        return response;
       }
       if (path === "/api/repos" && req.method === "GET") {
         const s = await requireSession(req, env),

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker from "../worker/index";
+import worker from "./worker-fixture";
 import {
   authorSourceSchema,
   type AuthorSource,
@@ -177,6 +177,8 @@ test("foreign papers, authors, duplicate mappings and unsupported source URLs ar
 });
 const key = "sk-TEST-ONLY-AUTHOR-KEY";
 const env = {
+  OPENAI_API_KEY: "sk-TEST-ONLY-AUTHOR-KEY",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
@@ -190,7 +192,11 @@ const body = () => ({
   apiKey: key,
   papers: [source],
 });
-const request = (input: unknown, origin = env.APP_ORIGIN, cookie = "") =>
+const request = (
+  input: unknown,
+  origin = env.APP_ORIGIN,
+  cookie = "test-session",
+) =>
   new Request(env.APP_ORIGIN + "/api/author-affiliations", {
     method: "POST",
     headers: {
@@ -200,7 +206,7 @@ const request = (input: unknown, origin = env.APP_ORIGIN, cookie = "") =>
     },
     body: JSON.stringify(input),
   });
-test("both providers extract authors in one bounded call with no key or library notes in model input", async (t) => {
+test("server-funded OpenAI extract authors in one bounded call with no key or library notes in model input", async (t) => {
   let calls = 0;
   t.mock.method(
     globalThis,
@@ -234,7 +240,7 @@ test("both providers extract authors in one bounded call with no key or library 
       );
     },
   );
-  for (const provider of ["openai", "anthropic"]) {
+  for (const provider of ["openai"]) {
     const r = await worker.fetch(
       request({ ...body(), provider, notes: "PRIVATE-NOTE" }),
       env,
@@ -244,7 +250,7 @@ test("both providers extract authors in one bounded call with no key or library 
     assert.equal(data.papers[0].correspondingAuthors[0].name, "Min Lee");
     assert(!JSON.stringify(data).includes(key));
   }
-  assert.equal(calls, 2);
+  assert.equal(calls, 1);
 });
 test("author endpoint enforces origin, bounds and matching signed-in account before provider calls", async (t) => {
   let calls = 0;
@@ -274,12 +280,21 @@ test("author endpoint enforces origin, bounds and matching signed-in account bef
     400,
   );
   assert.equal(
-    (await worker.fetch(request({ ...body(), apiKey: "" }), env)).status,
-    400,
+    (
+      await worker.fetch(
+        request({ ...body(), apiKey: "" }, env.APP_ORIGIN, ""),
+        env,
+      )
+    ).status,
+    401,
   );
   assert.equal(
-    (await worker.fetch(request({ ...body(), accountId: 42, apiKey: "" }), env))
-      .status,
+    (
+      await worker.fetch(
+        request({ ...body(), accountId: 42, apiKey: "" }, env.APP_ORIGIN, ""),
+        env,
+      )
+    ).status,
     401,
   );
   const cookie = `__Host-pp-session=${await seal({ id: 43, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
@@ -298,7 +313,7 @@ test("author endpoint enforces origin, bounds and matching signed-in account bef
   );
   assert.equal(calls, 0);
 });
-test("same-account encrypted credentials support author extraction and malformed output is not retried", async (t) => {
+test("server credentials support author extraction and malformed output is not retried", async (t) => {
   const cookie = `__Host-pp-session=${await seal({ id: 42, login: "test", name: "Test", token: "fake-token", expires: Date.now() + 60000 }, env.SESSION_SECRET)}; ${(await saveAccountKey(env.SESSION_SECRET, 42, { provider: "openai", model: "gpt-6-luna", apiKey: key })).cookie.split(";")[0]}`;
   let calls = 0;
   t.mock.method(

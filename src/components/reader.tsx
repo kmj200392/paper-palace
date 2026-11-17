@@ -32,17 +32,16 @@ import { getSource } from "@/lib/source";
 import { api } from "@/lib/api";
 import { PdfReader, type PdfTarget } from "./pdf-reader";
 import { appendPdfQuote } from "@/lib/pdf-citations";
-import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
+import { hasAIConnection, aiRequest, type AISettings } from "@/lib/ai-settings";
 import { PaperChat } from "./paper-chat";
 import type { ChatQuote } from "@/lib/paper-chat";
-export type { AISettings } from "@/lib/ai-vault";
+export type { AISettings } from "@/lib/ai-settings";
 export function Reader({
   paper,
   onBack,
   onUpdate,
   onDelete,
   settings,
-  openSettings,
   notify,
   syncState,
   onSync,
@@ -52,7 +51,6 @@ export function Reader({
   onUpdate: (p: Partial<Paper>) => void;
   onDelete: () => void;
   settings: AISettings;
-  openSettings: () => void;
   notify: (s: string) => void;
   syncState: "saved" | "saving" | "pending" | "error";
   onSync: () => void;
@@ -145,7 +143,9 @@ export function Reader({
     onUpdate({ ...changes, updatedAt: new Date().toISOString() });
   const analyze = async () => {
     if (!hasAIConnection(settings)) {
-      openSettings();
+      notify(
+        "AI 서비스를 잠시 사용할 수 없어요. 새로고침 후 다시 시도해 주세요.",
+      );
       return;
     }
     if (!source || analysisRequest.current) return;
@@ -161,7 +161,7 @@ export function Reader({
       const { analysis } = await api<{ analysis: Analysis }>("/analyze", {
         method: "POST",
         body: JSON.stringify({
-          ...settings,
+          ...aiRequest(settings),
           title: paper.title,
           blocks: source.blocks,
         }),
@@ -541,7 +541,6 @@ export function Reader({
               visible={tab === "chat" && panelOpen}
               selection={chatSelection}
               onCitation={jump}
-              openSettings={openSettings}
               onSaveNote={(text) => {
                 const next = `${paper.notes}${paper.notes ? "\n\n" : ""}${text}`;
                 if (next.length > 30000) {
@@ -630,10 +629,8 @@ export function Reader({
                         : "AI로 상세 해설 만들기"}
                     </button>
                     <small>
-                      선택한 AI에 원문 텍스트가 전달되며
-                      <br />
-                      본인 API 계정의 사용료가 발생합니다. 상세 해설은 잠시
-                      시간이 걸릴 수 있어요.
+                      원문을 읽고 근거와 함께 정리해요. 상세 해설은 잠시 시간이
+                      걸릴 수 있어요.
                     </small>
                   </div>
                 ) : (

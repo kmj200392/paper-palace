@@ -10,7 +10,6 @@ import {
   FolderGit2,
   Unplug,
   Github,
-  KeyRound,
   Library as LibraryIcon,
   LoaderCircle,
   LogOut,
@@ -32,13 +31,15 @@ import { Brand } from "./brand";
 import { MakerCredit } from "./maker-credit";
 import { PaperDiscovery } from "./paper-discovery";
 import { addRecommendation } from "@/lib/recommendations";
-import { AIConnection } from "./ai-connection";
-import { useAccountAI } from "./use-account-ai";
 import { usePaperLabels } from "./use-paper-labels";
-import { defaultAISettings, hasAIConnection } from "@/lib/ai-settings";
+import {
+  hostedAISettings,
+  hasAIConnection,
+  aiRequest,
+} from "@/lib/ai-settings";
 import { Dialog } from "./dialog";
 import { Graph } from "./graph";
-import { Reader, type AISettings } from "./reader";
+import { Reader } from "./reader";
 import {
   type Library,
   type Paper,
@@ -110,15 +111,18 @@ export default function Workspace() {
     [config, setConfig] = useState({
       githubConfigured: false,
       githubAppSlug: "",
+      aiConfigured: false,
     }),
-    [ai, setAi] = useState<AISettings>(() => defaultAISettings("openai")),
     [edgeDraft, setEdgeDraft] = useState({
       source: "",
       target: "",
       label: "builds on",
       note: "",
     });
-  const accountAI = useAccountAI(user?.id, setAi);
+  const ai = useMemo(
+    () => hostedAISettings(config.aiConfigured ? user?.id : undefined),
+    [config.aiConfigured, user?.id],
+  );
   const storage = useLibraryReconciliation();
   const remote = useGitHubLibrary(user?.id, repo, storage.merge);
   const empty = useMemo(emptyLibrary, []);
@@ -345,7 +349,6 @@ export default function Workspace() {
   const logout = () =>
     leave("로그아웃", async () => {
       await api("/auth/logout", { method: "POST" });
-      setAi((a) => ({ ...a, apiKey: "", accountId: undefined }));
       location.assign("/app/");
     });
   const exportLegacy = async (legacyAccount: string) => {
@@ -415,7 +418,9 @@ export default function Workspace() {
   };
   const suggestAI = async () => {
     if (!hasAIConnection(ai)) {
-      setSettingsOpen(true);
+      notify(
+        "AI 서비스를 잠시 사용할 수 없어요. 새로고침 후 다시 시도해 주세요.",
+      );
       return;
     }
     if (suggesting) return;
@@ -447,7 +452,7 @@ export default function Workspace() {
         }[];
       }>("/relate", {
         method: "POST",
-        body: JSON.stringify({ ...ai, papers }),
+        body: JSON.stringify({ ...aiRequest(ai), papers }),
       });
       mutate((l) => {
         const edges = [...l.edges];
@@ -637,17 +642,6 @@ export default function Workspace() {
         </nav>
         <div className="sidebar-connections">
           <button
-            className={`sidebar-item key-status ${hasAIConnection(ai) ? "connected" : ""}`}
-            aria-label={hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
-            title={hasAIConnection(ai) ? "AI 연결됨 · 연결 설정" : "AI 연결"}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <KeyRound size={18} aria-hidden="true" />
-            <span className="sidebar-text">
-              {hasAIConnection(ai) ? "AI 연결됨" : "AI 연결"}
-            </span>
-          </button>
-          <button
             className="sidebar-item sync-button"
             aria-label={syncing ? "동기화 중" : "GitHub 동기화"}
             title={syncing ? "동기화 중" : "GitHub 동기화"}
@@ -791,7 +785,6 @@ export default function Workspace() {
                 key={`${account}:${repo}`}
                 library={library}
                 settings={ai}
-                openSettings={() => setSettingsOpen(true)}
                 onOpen={(id) => setSelected(id)}
                 onAdd={(recommendation, connections) => {
                   mutate((l) =>
@@ -886,7 +879,6 @@ export default function Workspace() {
               }
               onSync={sync}
               settings={ai}
-              openSettings={() => setSettingsOpen(true)}
               notify={notify}
               onBack={() => {
                 setSelected(null);
@@ -971,7 +963,7 @@ export default function Workspace() {
                         library.papers.filter((p) => p.analysis).length < 2
                       }
                       onClick={suggestAI}
-                      title="최대 40편의 논문 제목과 AI 요약을 선택한 제공자에 전송합니다. API 사용료가 발생합니다."
+                      title="최대 40편의 논문 제목과 AI 요약을 바탕으로 연결을 제안해요."
                     >
                       {suggesting ? (
                         <LoaderCircle size={14} className="spin" />
@@ -1295,8 +1287,8 @@ export default function Workspace() {
             </p>
           )}
           <p className="form-hint">
-            AI가 연결되어 있으면 그래프의 짧은 이름을 자동으로 만들어요. 상세
-            해설은 원문을 연 뒤 직접 시작할 수 있어요.
+            그래프의 짧은 이름은 AI가 자동으로 만들어요. 상세 해설은 원문을 연
+            뒤 직접 시작할 수 있어요.
           </p>
           <button
             className="button primary full"
@@ -1317,9 +1309,6 @@ export default function Workspace() {
         title="나의 연구 공간 설정"
         wide
       >
-        {settingsOpen && (
-          <AIConnection ai={ai} setAi={setAi} user={user} account={accountAI} />
-        )}
         <section className="settings-section">
           <h3>
             <FolderGit2 size={18} /> GitHub 저장소

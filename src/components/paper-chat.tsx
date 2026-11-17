@@ -14,7 +14,7 @@ import {
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
-import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
+import { hasAIConnection, aiRequest, type AISettings } from "@/lib/ai-settings";
 import {
   chatAnswerSchema,
   chatContext,
@@ -34,7 +34,6 @@ export function PaperChat({
   visible,
   selection,
   onCitation,
-  openSettings,
   onSaveNote,
 }: {
   title: string;
@@ -44,7 +43,6 @@ export function PaperChat({
   visible: boolean;
   selection: (ChatQuote & { request: number }) | null;
   onCitation: (citation: Citation) => void;
-  openSettings: () => void;
   onSaveNote: (text: string) => void;
 }) {
   const [messages, setMessages] = useState<Turn[]>([]);
@@ -78,7 +76,9 @@ export function PaperChat({
   async function send() {
     if (request.current) return;
     if (!hasAIConnection(settings)) {
-      openSettings();
+      setError(
+        "AI 서비스를 잠시 사용할 수 없어요. 새로고침 후 다시 시도해 주세요.",
+      );
       return;
     }
     if (!source || (!draft.trim() && !quote)) return;
@@ -117,7 +117,7 @@ export function PaperChat({
         method: "POST",
         signal: controller.signal,
         body: JSON.stringify({
-          ...settings,
+          ...aiRequest(settings),
           title,
           ...context,
           messages: history,
@@ -351,7 +351,7 @@ export function PaperChat({
               type="submit"
               className="chat-send"
               aria-label={
-                hasAIConnection(settings) ? "질문 보내기" : "AI 연결하기"
+                hasAIConnection(settings) ? "질문 보내기" : "AI 준비 중"
               }
               disabled={!source || (!draft.trim() && !quote)}
             >
@@ -360,9 +360,7 @@ export function PaperChat({
           )}
         </div>
         <p className="chat-footnote">
-          {hasAIConnection(settings)
-            ? "연결한 AI 계정 사용 · "
-            : "AI 연결 필요 · "}
+          {hasAIConnection(settings) ? "Paper Palace AI · " : "AI 준비 중 · "}
           대화는 이 논문을 닫으면 사라져요
         </p>
       </form>

@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const HOSTED_AI_MODEL = "gpt-6-luna";
+export const hostedAISettings = (accountId?: number): AISettings => ({
+  provider: "openai",
+  model: HOSTED_AI_MODEL,
+  apiKey: "",
+  accountId,
+});
+// Only account context crosses the browser boundary. The server owns credentials.
+export const aiRequest = (settings: AISettings) => ({
+  accountId: settings.accountId,
+});
+
 export const aiProviderSchema = z.enum(["openai", "anthropic"]);
 export type AIProvider = z.infer<typeof aiProviderSchema>;
 export const aiModelSchema = z

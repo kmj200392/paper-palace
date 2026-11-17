@@ -1,11 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import {
-  aiModelSchema,
-  apiKeySchema,
-  type AISettings,
-} from "@/lib/ai-settings";
+import { aiModelSchema, aiRequest, type AISettings } from "@/lib/ai-settings";
 import type { Library } from "@/lib/model";
 import {
   applyPaperLabels,
@@ -45,9 +41,8 @@ export function usePaperLabels({
   current.current = { session, library, enabled, update };
   const connected =
     aiModelSchema.safeParse(ai.model).success &&
-    (ai.accountId !== undefined
-      ? account === `github:${ai.accountId}`
-      : apiKeySchema.safeParse(ai.apiKey).success);
+    ai.accountId !== undefined &&
+    account === `github:${ai.accountId}`;
 
   useEffect(() => {
     alive.current = true;
@@ -94,7 +89,7 @@ export function usePaperLabels({
           controller.current = new AbortController();
           const response = await api<unknown>("/paper-labels", {
             method: "POST",
-            body: JSON.stringify({ ...ai, papers }),
+            body: JSON.stringify({ ...aiRequest(ai), papers }),
             signal: controller.current.signal,
           });
           const parsed = paperLabelsSchema.safeParse(response);

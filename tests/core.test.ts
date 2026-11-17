@@ -15,7 +15,7 @@ import {
   sameOrigin,
   boundedText,
 } from "../worker/security";
-import worker from "../worker/index";
+import worker from "./worker-fixture";
 const sample = (id: string, time = "2026-10-29T00:00:00.000Z"): Paper => ({
   id,
   arxivId: id + "v1",
@@ -146,6 +146,8 @@ test("CSRF requires exact origin and request bodies are bounded", async () => {
   await assert.rejects(() => boundedText(new Response("oversized"), 4));
 });
 const env = {
+  OPENAI_API_KEY: "sk-test-not-a-real-credential",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "client",
   GITHUB_CLIENT_SECRET: "secret",
@@ -253,7 +255,11 @@ test("OpenAI adapter validates evidence and does not return keys to the browser"
     const r = await worker.fetch(
       new Request(env.APP_ORIGIN + "/api/analyze", {
         method: "POST",
-        headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
+        headers: {
+          Cookie: "test-session",
+          Origin: env.APP_ORIGIN,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           provider: "openai",
           model: "gpt-6-luna",
@@ -325,7 +331,11 @@ test("AI graph proposals cannot reference unknown papers or self edges", async (
     const r = await worker.fetch(
       new Request(env.APP_ORIGIN + "/api/relate", {
         method: "POST",
-        headers: { Origin: env.APP_ORIGIN, "Content-Type": "application/json" },
+        headers: {
+          Cookie: "test-session",
+          Origin: env.APP_ORIGIN,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           provider: "openai",
           model: "gpt-6-luna",

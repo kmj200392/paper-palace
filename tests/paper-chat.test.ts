@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker from "../worker/index";
+import worker from "./worker-fixture";
 import {
   chatContext,
   chatHistory,
@@ -11,6 +11,8 @@ import { saveAccountKey } from "../worker/ai-credentials";
 import { seal } from "../worker/security";
 import type { Block } from "../src/lib/model";
 const env = {
+  OPENAI_API_KEY: "sk-TEST-ONLY-NOT-A-REAL-KEY",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
@@ -41,7 +43,7 @@ const answer = {
 const req = (
   payload: unknown = input,
   origin = env.APP_ORIGIN,
-  cookie = "",
+  cookie = "test-session",
   signal?: AbortSignal,
 ) =>
   new Request(env.APP_ORIGIN + "/api/chat", {
@@ -89,47 +91,7 @@ test("chat uses the chosen OpenAI model, untrusted document/dialogue data, no pr
   assert.equal(data.answer, answer.answer);
   assert.deepEqual(data.citations, [answer.citations[0]]);
 });
-test("Anthropic chat uses existing credential transport and validates completion", async (t) => {
-  let truncated = false;
-  t.mock.method(
-    globalThis,
-    "fetch",
-    async (url: unknown, init?: RequestInit) => {
-      assert.equal(url, "https://api.anthropic.com/v1/messages");
-      assert.equal(
-        (init?.headers as Record<string, string>)["x-api-key"],
-        input.apiKey,
-      );
-      const body = JSON.parse(String(init?.body));
-      assert.equal(body.max_tokens, 6000);
-      assert(body.output_config.format.schema);
-      return Response.json({
-        stop_reason: truncated ? "max_tokens" : "end_turn",
-        content: [{ type: "text", text: JSON.stringify(answer) }],
-      });
-    },
-  );
-  assert.equal(
-    (
-      await worker.fetch(
-        req({ ...input, provider: "anthropic", model: "claude-test" }),
-        env,
-      )
-    ).status,
-    200,
-  );
-  truncated = true;
-  assert.equal(
-    (
-      await worker.fetch(
-        req({ ...input, provider: "anthropic", model: "claude-test" }),
-        env,
-      )
-    ).status,
-    502,
-  );
-});
-test("account chat enforces session binding and uses the encrypted account key without exposing it", async (t) => {
+test("chat requires a matching session and uses the server key without any saved account key", async (t) => {
   const session = `__Host-pp-session=${await seal({ id: 42, login: "test", name: "Test", token: "fake", expires: Date.now() + 60000 }, env.SESSION_SECRET)}`;
   const stored = await saveAccountKey(env.SESSION_SECRET, 42, {
     provider: "openai",
@@ -159,7 +121,10 @@ test("account chat enforces session binding and uses the encrypted account key w
       });
     },
   );
-  assert.equal((await worker.fetch(req(payload), env)).status, 401);
+  assert.equal(
+    (await worker.fetch(req(payload, env.APP_ORIGIN, ""), env)).status,
+    401,
+  );
   assert.equal(
     (
       await worker.fetch(
@@ -171,7 +136,7 @@ test("account chat enforces session binding and uses the encrypted account key w
   );
   assert.equal(
     (await worker.fetch(req(payload, env.APP_ORIGIN, session), env)).status,
-    401,
+    200,
   );
   const response = await worker.fetch(
     req(payload, env.APP_ORIGIN, cookies),
@@ -179,7 +144,7 @@ test("account chat enforces session binding and uses the encrypted account key w
   );
   assert.equal(response.status, 200);
   assert(!(await response.text()).includes(input.apiKey));
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
 });
 test("cross-origin and malformed, oversized, role-injected requests fail before contacting a provider", async (t) => {
   let calls = 0;
@@ -209,7 +174,6 @@ test("cross-origin and malformed, oversized, role-injected requests fail before 
         text: "x".repeat(30000),
       })),
     },
-    { ...input, apiKey: "" },
   ];
   for (const v of variants)
     assert.equal((await worker.fetch(req(v), env)).status, 400);
@@ -222,7 +186,7 @@ test("provider failures and refusals produce bounded errors rather than a fabric
   );
   t.mock.method(globalThis, "fetch", async () => response);
   const limited = await worker.fetch(req(), env);
-  assert.equal(limited.status, 502);
+  assert.equal(limited.status, 429);
   assert(!(await limited.text()).includes("private secret"));
   response = Response.json({
     status: "completed",
@@ -265,7 +229,7 @@ test("cancelling a chat propagates abort to the provider fetch", async (t) => {
       }),
   );
   const response = worker.fetch(
-    req(input, env.APP_ORIGIN, "", controller.signal),
+    req(input, env.APP_ORIGIN, "test-session", controller.signal),
     env,
   );
   await started;

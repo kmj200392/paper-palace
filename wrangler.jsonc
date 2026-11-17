@@ -24,6 +24,13 @@
     },
   ],
   "workers_dev": true,
+  "ratelimits": [
+    {
+      "name": "AI_RATE_LIMIT",
+      "namespace_id": "2026111701",
+      "simple": { "limit": 20, "period": 60 },
+    },
+  ],
   "durable_objects": {
     "bindings": [
       { "name": "ARXIV_SEARCH", "class_name": "ArxivSearch" },

@@ -196,11 +196,10 @@ export default function Home() {
               </article>
               <article>
                 <KeyRound size={24} />
-                <h3>Your key. Your choice.</h3>
+                <h3>Ready to read.</h3>
                 <p>
-                  나의 OpenAI 또는 Claude API 키로 분석하세요. 키를 브라우저에
-                  암호화해 보관할 수 있으며, AI 이용 요금은 해당 제공자에서
-                  부과됩니다.
+                  GitHub으로 로그인하면 AI 정리와 채팅을 바로 사용할 수 있어요.
+                  별도의 API 키나 AI 구독 연결은 필요하지 않습니다.
                 </p>
               </article>
               <article>
@@ -223,11 +222,11 @@ export default function Home() {
             {[
               [
                 "무료로 사용할 수 있나요?",
-                "Paper Palace는 무료 오픈소스 서비스입니다. 논문 저장·읽기·연결은 무료이며, AI 분석 비용은 본인의 API 계정에 부과됩니다. 호스팅과 GitHub의 무료 사용 한도 내에서 운영합니다.",
+                "Paper Palace는 무료 오픈소스 서비스입니다. AI 기능은 서비스에서 제공하며 별도의 API 키가 필요하지 않습니다. 안정적인 운영을 위해 짧은 시간에 많은 요청을 보내면 잠시 제한될 수 있습니다.",
               ],
               [
                 "ChatGPT나 Claude 구독 계정을 연결하나요?",
-                "현재는 API 키를 입력하는 방식입니다. ChatGPT·Claude 구독과 API 사용료는 별개입니다. 구독 계정 로그인을 통한 AI 이용은 제공하지 않습니다.",
+                "아니요. GitHub 로그인만 하면 Paper Palace에서 제공하는 AI를 사용할 수 있어요. ChatGPT·Claude 구독이나 개인 API 키를 연결하지 않습니다.",
               ],
               [
                 "원문과 요약은 어떻게 연결되나요?",

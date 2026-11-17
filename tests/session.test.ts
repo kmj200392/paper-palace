@@ -4,6 +4,8 @@ import worker from "../worker/index";
 import { seal } from "../worker/security";
 
 const base = {
+  OPENAI_API_KEY: "sk-TEST-SERVER-SESSION-KEY",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "test-client",
   GITHUB_CLIENT_SECRET: "test-secret",
@@ -15,6 +17,23 @@ const request = (path: string, cookies = "", method = "GET") =>
   new Request(base.APP_ORIGIN + path, {
     method,
     headers: { Cookie: cookies, Origin: base.APP_ORIGIN },
+  });
+
+const chatRequest = (cookies: string, accountId = 42) =>
+  new Request(base.APP_ORIGIN + "/api/chat", {
+    method: "POST",
+    headers: {
+      Cookie: cookies,
+      Origin: base.APP_ORIGIN,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      accountId,
+      title: "Paper",
+      blocks: [{ id: "b1", kind: "paragraph", text: "Source text." }],
+      contextComplete: true,
+      messages: [{ role: "user", content: "Explain" }],
+    }),
   });
 
 test("login requests offline access so expiring GitHub tokens can be renewed", async () => {
@@ -250,8 +269,7 @@ test("revoked refresh token deletes the session; account AI stays inaccessible",
   assert.deepEqual(await r.json(), { user: null });
   assert.equal([...stores.values()][0].data.size, 0);
   assert.equal(
-    (await worker.fetch(request("/api/ai-keys", auth + "; " + key), env))
-      .status,
+    (await worker.fetch(chatRequest(auth + "; " + key), env)).status,
     401,
   );
 });
@@ -286,10 +304,7 @@ test("logout queued during token refresh prevents a delayed response from revivi
     await (await worker.fetch(request("/api/me", lateCookie), env)).json(),
     { user: null },
   );
-  assert.equal(
-    (await worker.fetch(request("/api/ai-keys", auth), env)).status,
-    401,
-  );
+  assert.equal((await worker.fetch(chatRequest(auth), env)).status, 401);
 });
 
 test("session expiration alarms delete encrypted credentials, while stale alarms preserve renewed sessions", async (t) => {
@@ -310,43 +325,45 @@ test("session expiration alarms delete encrypted credentials, while stale alarms
   );
 });
 
-test("server sessions preserve saved AI account isolation and reject tampered tickets", async () => {
+test("server sessions bind hosted AI to the displayed account and reject tampered tickets", async (t) => {
   const { env } = environment();
   const auth = pair(await createSession(env, user, tokens));
   const other = pair(await createSession(env, { ...user, id: 99 }, tokens));
-  const key = pair(
-    (
-      await saveAccountKey(env.SESSION_SECRET, 42, {
-        provider: "openai",
-        model: "gpt-6-luna",
-        apiKey: "sk-TEST-ONLY-NOT-REAL",
-      })
-    ).cookie,
-  );
-  const owner = await worker.fetch(
-    request("/api/ai-keys", auth + "; " + key),
-    env,
-  );
-  assert.equal(((await owner.json()) as { keys: unknown[] }).keys.length, 1);
-  const wrong = await worker.fetch(
-    request("/api/ai-keys", other + "; " + key),
-    env,
-  );
-  assert.equal(((await wrong.json()) as { keys: unknown[] }).keys.length, 0);
-  const tampered = auth.slice(0, -10) + "abcINVALID";
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++;
+    return Response.json({
+      status: "completed",
+      output: [
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify({ answer: "Answer", citations: [] }),
+            },
+          ],
+        },
+      ],
+    });
+  });
+  assert.equal((await worker.fetch(chatRequest(auth), env)).status, 200);
+  assert.equal((await worker.fetch(chatRequest(other), env)).status, 409);
   assert.equal(
-    (await worker.fetch(request("/api/ai-keys", tampered), env)).status,
+    (await worker.fetch(chatRequest(auth.slice(0, -10) + "abcINVALID"), env))
+      .status,
     401,
   );
   assert.equal(
     (
-      await worker.fetch(request("/api/ai-keys", auth), {
+      await worker.fetch(chatRequest(auth), {
         ...env,
         SESSION_SECRET: "different-secret-".repeat(4),
       })
     ).status,
     401,
   );
+  assert.equal(calls, 1);
 });
 
 test("missing session storage is a retryable outage, never anonymous authentication", async () => {

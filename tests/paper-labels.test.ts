@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker from "../worker/index";
+import worker from "./worker-fixture";
 import { emptyLibrary, librarySchema, type Paper } from "../src/lib/model";
 import {
   applyPaperLabels,
@@ -11,6 +11,8 @@ import {
 import { reconcileLibraries } from "../src/lib/reconcile";
 
 const env = {
+  OPENAI_API_KEY: "sk-TEST-ONLY-PAPER-LABEL-KEY",
+  AI_RATE_LIMIT: { limit: async () => ({ success: true }) },
   APP_ORIGIN: "https://paperpalace.minjaek.im",
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
@@ -42,7 +44,11 @@ const request = (
 ) =>
   new Request(env.APP_ORIGIN + "/api/paper-labels", {
     method: "POST",
-    headers: { Origin: origin, "Content-Type": "application/json" },
+    headers: {
+      Cookie: "test-session",
+      Origin: origin,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       provider,
       model: provider === "openai" ? "gpt-6-luna" : "claude-sonnet-4-5",
@@ -120,7 +126,7 @@ test("offline placeholders stay compact; AI names are bounded to one or two word
     );
 });
 
-test("both providers name only supplied papers with bounded output and no credentials or private notes in prompts", async (t) => {
+test("server-funded OpenAI name only supplied papers with bounded output and no credentials or private notes in prompts", async (t) => {
   const input = labelInput(paper("a", "MemRefine: Memory Refinement"));
   let calls = 0;
   t.mock.method(
@@ -157,14 +163,14 @@ test("both providers name only supplied papers with bounded output and no creden
       );
     },
   );
-  for (const provider of ["openai", "anthropic"]) {
+  for (const provider of ["openai"]) {
     const r = await worker.fetch(request([input], provider), env);
     assert.equal(r.status, 200);
     assert.deepEqual(await r.json(), {
       labels: [{ id: "a", label: "MemRefine" }],
     });
   }
-  assert.equal(calls, 2);
+  assert.equal(calls, 1);
 });
 
 test("invalid, missing, duplicate or foreign AI names fail instead of being attached to another paper", async (t) => {

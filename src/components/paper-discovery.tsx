@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { hasAIConnection, type AISettings } from "@/lib/ai-settings";
+import { hasAIConnection, aiRequest, type AISettings } from "@/lib/ai-settings";
 import { type Library } from "@/lib/model";
 import {
   authorDetailsResponseSchema,
@@ -29,13 +29,11 @@ import {
 export function PaperDiscovery({
   library,
   settings,
-  openSettings,
   onAdd,
   onOpen,
 }: {
   library: Library;
   settings: AISettings;
-  openSettings: () => void;
   onAdd: (recommendation: Recommendation, connections: boolean) => void;
   onOpen: (id: string) => void;
 }) {
@@ -58,7 +56,9 @@ export function PaperDiscovery({
   const find = async () => {
     if (request.current || query.trim().length < 2) return;
     if (!hasAIConnection(settings)) {
-      openSettings();
+      setError(
+        "AI 서비스를 잠시 사용할 수 없어요. 새로고침 후 다시 시도해 주세요.",
+      );
       return;
     }
     const controller = new AbortController();
@@ -71,7 +71,7 @@ export function PaperDiscovery({
     try {
       const data = await api<unknown>("/recommend", {
         method: "POST",
-        body: JSON.stringify({ ...settings, ...context }),
+        body: JSON.stringify({ ...aiRequest(settings), ...context }),
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
@@ -97,7 +97,7 @@ export function PaperDiscovery({
           if (sources.length) {
             const response = await api<unknown>("/author-affiliations", {
               method: "POST",
-              body: JSON.stringify({ ...settings, papers: sources }),
+              body: JSON.stringify({ ...aiRequest(settings), papers: sources }),
               signal: controller.signal,
             });
             if (controller.signal.aborted) return;
@@ -170,12 +170,12 @@ export function PaperDiscovery({
                 : "연구 지도에서 찾는 중…"
               : hasAIConnection(settings)
                 ? "논문 추천받기"
-                : "AI 연결하고 시작하기"}
+                : "AI 준비 중"}
           </button>
         </div>
         <p className="discovery-cost">
-          {hasAIConnection(settings) ? settings.model : "연결한 AI"} · 검색당 AI
-          최대 3회 호출(소속 확인 포함). 내 API 크레딧을 사용해요.
+          {hasAIConnection(settings) ? settings.model : "Paper Palace AI"} ·
+          검색당 AI 최대 3회 호출(소속 확인 포함).
         </p>
       </form>
       <p className="discovery-scope">
