@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useId } from "react";
 import { X } from "lucide-react";
 export function Dialog({
   open,
@@ -15,6 +15,7 @@ export function Dialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     if (open) ref.current?.showModal();
     else ref.current?.close();
@@ -22,6 +23,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       className={`dialog ${wide ? "wide" : ""}`}
       onCancel={onClose}
       onClick={(e) => {
@@ -30,7 +32,7 @@ export function Dialog({
     >
       <div className="dialog-inner">
         <div className="dialog-heading">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button className="icon-button" onClick={onClose} aria-label="닫기">
             <X size={20} />
           </button>

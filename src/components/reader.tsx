@@ -501,15 +501,24 @@ export function Reader({
           className={`analysis-panel ${mobile === "summary" ? "mobile-active" : ""}`}
         >
           <div className="panel-heading">
-            <div className="reader-tabs">
+            <div className="reader-tabs" aria-label="읽기 도우미 메뉴">
+              <span
+                className="reader-tab-indicator"
+                aria-hidden="true"
+                style={{
+                  transform: `translateX(${tab === "summary" ? 0 : tab === "notes" ? 100 : 200}%)`,
+                }}
+              />
               <button
                 className={tab === "summary" ? "active" : ""}
+                aria-pressed={tab === "summary"}
                 onClick={() => setTab("summary")}
               >
                 <Sparkles size={14} /> 논문 정리
               </button>
               <button
                 className={tab === "notes" ? "active" : ""}
+                aria-pressed={tab === "notes"}
                 onClick={() => setTab("notes")}
               >
                 <StickyNote size={14} /> 나의 메모

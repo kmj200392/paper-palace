@@ -127,8 +127,7 @@ export function PaperDiscovery({
   return (
     <section className="discovery" aria-labelledby="discovery-title">
       <div className="discovery-heading">
-        <p className="eyebrow">YOUR NEXT CONNECTION</p>
-        <h1 id="discovery-title">다음에 읽을 논문.</h1>
+        <h1 id="discovery-title">다음에 읽을 논문</h1>
         <p>
           지금까지 쌓은 연구 지도에서, 다음 질문으로 이어지는 논문을 찾아보세요.
         </p>
@@ -143,6 +142,8 @@ export function PaperDiscovery({
         <label htmlFor="discovery-query">어떤 분야를 더 알아보고 싶나요?</label>
         <textarea
           id="discovery-query"
+          name="research-topic"
+          autoComplete="off"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={500}
@@ -173,10 +174,6 @@ export function PaperDiscovery({
                 : "AI 준비 중"}
           </button>
         </div>
-        <p className="discovery-cost">
-          {hasAIConnection(settings) ? settings.model : "Paper Palace AI"} ·
-          검색당 AI 최대 3회 호출(소속 확인 포함).
-        </p>
       </form>
       <p className="discovery-scope">
         라이브러리에 없는 arXiv 논문을 찾아요. 제목·초록·저장한 요약과 그래프

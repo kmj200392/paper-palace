@@ -2,283 +2,200 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ArrowRight,
-  BookOpen,
-  GitBranch,
-  KeyRound,
-  Check,
+  Github,
   Plus,
-  MoveUpRight,
+  BookOpen,
+  Network,
+  MessageSquare,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { MakerCredit } from "@/components/maker-credit";
-import { PalaceMap } from "@/components/palace-map";
+import { ResearchPreview, ReadingPreview } from "@/components/research-preview";
+
 export default function Home() {
   return (
-    <>
-      <header className="site-header">
+    <div className="palace-site">
+      <header className="palace-header">
         <Brand />
         <nav aria-label="주 메뉴">
-          <a href="#how-it-works">어떻게 쓰나요</a>
-          <a href="#your-library">나만의 라이브러리</a>
-          <Link className="nav-cta" href="/app/">
-            서비스로 이동하기 <ArrowUpRight size={16} />
+          <a href="#reading">읽는 방식</a>
+          <a href="#your-library">나의 라이브러리</a>
+          <Link className="button primary small" href="/app/">
+            연구 공간 열기 <ArrowUpRight size={16} aria-hidden="true" />
           </Link>
         </nav>
       </header>
       <main id="main">
-        <section className="hero section-shell">
-          <div className="hero-copy">
-            <p className="eyebrow">
-              <span /> A PALACE FOR YOUR PAPERS
+        <section className="palace-hero">
+          <div className="palace-hero-copy">
+            <p className="hero-invitation">
+              <span aria-hidden="true" /> 논문을 위한 나만의 서재
             </p>
             <h1>
-              Read.
+              읽은 논문이
               <br />
-              Connect.
+              다음 생각으로
               <br />
-              <em>Remember.</em>
+              이어지는 곳.
             </h1>
-            <h2>
-              읽은 논문이,
+            <p className="palace-intro">
+              논문을 읽고, 질문하고, 서로 연결하세요.
               <br />
-              쌓이는 지식이 되도록.
-            </h2>
-            <p className="hero-description">
-              흩어진 논문 사이에서 생각의 연결을 발견하세요.
-              <br className="desktop-break" /> Paper Palace는 읽은 논문을
-              연결해,
-              <br className="desktop-break" /> 나만의 연구 지도로 기억하는
-              공간입니다.
+              흩어져 있던 지식이 나의 연구 지도가 됩니다.
             </p>
-            <Link className="button primary" href="/app/">
-              나의 연구 공간 열기 <ArrowUpRight size={18} />
+            <Link className="button primary hero-enter" href="/app/">
+              나의 연구 공간 열기 <ArrowUpRight size={19} aria-hidden="true" />
             </Link>
-            <p className="hero-footnote">
-              무료 오픈소스 · 나의 GitHub에 저장 · 나의 AI로 읽기
+            <p className="hero-assurance">
+              <Github size={15} aria-hidden="true" /> GitHub으로 시작하는 무료
+              연구 공간
             </p>
           </div>
-          <PalaceMap />
+          <ResearchPreview />
         </section>
-        <div className="manifesto-strip">
-          <span>LESS COLLECTING.</span>
-          <i>More connecting.</i>
-          <span>논문을 모으는 곳에서, 생각을 연결하는 곳으로.</span>
-          <span className="strip-symbol">✳</span>
+        <div className="palace-principle">
+          <span>Read. Connect. Remember.</span>
+          <p>기억해야 할 논문보다, 이어갈 생각이 더 많아지도록.</p>
         </div>
-        <section className="section-shell story-section" id="how-it-works">
-          <div className="section-intro">
-            <p className="eyebrow">01 / READ WITH CONTEXT</p>
+        <section className="palace-reading" id="reading">
+          <div className="palace-section-heading">
             <h2>
-              다 읽기 전에,
+              원문 곁에,
               <br />
-              <em>먼저 이해하세요.</em>
+              이해를 돕는 한 페이지.
             </h2>
             <p>
-              왜 시작했는지, 무엇을 제안하는지, 어떻게 검증했는지.
+              연구 배경부터 실험 결과까지 맥락을 잡고,
               <br />
-              논문 한 편을 다섯 개의 질문으로 펼쳐 보세요.
+              궁금한 문장은 바로 질문하세요.
+              <br />
+              그림과 수식은 원본 PDF 그대로 읽습니다.
             </p>
           </div>
-          <div className="reading-preview">
-            <div className="preview-toolbar">
+          <ReadingPreview />
+          <div className="reading-annotations">
+            <p>
+              <BookOpen size={18} aria-hidden="true" />
               <span>
-                <BookOpen size={15} /> Paper reader
+                <strong>근거를 따라 읽기</strong>정리에서 원문의 해당 위치로
               </span>
-              <span className="preview-label">화면 구성 예시</span>
-              <span className="window-dots">● ● ●</span>
-            </div>
-            <div className="preview-columns">
-              <div className="preview-original">
-                <span className="tiny-label">ORIGINAL PAPER</span>
-                <h3>
-                  A new perspective
-                  <br />
-                  on a familiar problem
-                </h3>
-                <span className="mock-authors">
-                  The research, in its own words.
-                </span>
-                <h4>1. Introduction</h4>
-                <div className="text-lines">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </div>
-                <div className="source-highlight">
-                  요약 속 근거를 누르면
-                  <br />
-                  원문의 해당 부분으로 이동합니다.
-                </div>
-                <div className="text-lines">
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              </div>
-              <div className="preview-summary">
-                <span className="tiny-label">YOUR READING COMPANION</span>
-                {[
-                  ["01", "Motivation", "어떤 문제에서 출발했나요?"],
-                  ["02", "Core concept", "핵심 아이디어는 무엇인가요?"],
-                  ["03", "Method", "어떤 방법으로 풀었나요?"],
-                  ["04", "Experimental setup", "어떤 조건에서 검증했나요?"],
-                  ["05", "Results", "무엇을 얻었고, 무엇이 남았나요?"],
-                ].map(([n, en, ko]) => (
-                  <div className="summary-line" key={n}>
-                    <span>{n}</span>
-                    <div>
-                      <h4>{en}</h4>
-                      <p>{ko}</p>
-                    </div>
-                    <MoveUpRight size={14} />
-                  </div>
-                ))}
-              </div>
-            </div>
+            </p>
+            <p>
+              <MessageSquare size={18} aria-hidden="true" />
+              <span>
+                <strong>문장에서 시작하는 질문</strong>PDF를 드래그해 AI에게
+                물어보기
+              </span>
+            </p>
+            <p>
+              <Network size={18} aria-hidden="true" />
+              <span>
+                <strong>논문 너머의 연결</strong>내 그래프에서 다음 논문
+                발견하기
+              </span>
+            </p>
           </div>
         </section>
-        <section className="section-shell connection-section">
-          <div className="connection-art" aria-hidden="true">
-            <div className="idea-node idea-one">
-              Paper A<small>the foundation</small>
-            </div>
-            <div className="idea-node idea-two">
-              Paper B<small>a different approach</small>
-            </div>
-            <div className="idea-node idea-three">
-              Your next idea<small>a connection you noticed</small>
-            </div>
-            <svg viewBox="0 0 500 320">
-              <path d="M130 75 Q235 60 350 135 M130 75 Q180 240 240 245 M350 135 Q350 250 240 245" />
+        <section className="palace-ownership" id="your-library">
+          <div className="ownership-mark" aria-hidden="true">
+            <svg viewBox="240 200 850 750">
+              <image
+                href="/brand/paper-palace.png"
+                width="1254"
+                height="1254"
+              />
             </svg>
-            <span className="relation-label">builds on</span>
-            <span className="relation-label second">inspires</span>
           </div>
-          <div className="section-intro">
-            <p className="eyebrow">02 / CONNECT THE IDEAS</p>
+          <div className="ownership-copy">
             <h2>
-              논문 사이에,
+              오래 쌓을 지식은,
               <br />
-              <em>나의 관점이 생깁니다.</em>
+              내가 가진 공간에.
             </h2>
             <p>
-              같은 질문, 다른 방법, 이어지는 발견.
-              <br />
-              논문 간의 관계를 직접 연결하고 메모하세요.
-              <br />
-              AI와 태그로 발견한 연결 후보를 검토하고 지도에 더하세요.
+              논문, 요약, 메모와 연결은 나의 비공개 GitHub 저장소에 보관합니다.
+              기기가 달라져도 같은 서재에서 이어 읽고, 필요하면 언제든 꺼내
+              가져갈 수 있어요.
             </p>
-            <Link href="/app/" className="text-link">
-              지식 지도 만들기 <ArrowRight size={17} />
-            </Link>
+            <a
+              href="https://github.com/kmj200392/paper-palace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ownership-link"
+            >
+              <Github size={17} aria-hidden="true" /> 오픈소스 살펴보기{" "}
+              <ArrowUpRight size={15} aria-hidden="true" />
+            </a>
           </div>
-        </section>
-        <section className="ownership-section" id="your-library">
-          <div className="section-shell">
-            <div className="section-intro">
-              <p className="eyebrow">03 / KEEP IT YOURS</p>
-              <h2>
-                오래 쌓을 지식이니까.
-                <br />
-                <em>온전히, 나의 것으로.</em>
-              </h2>
+          <dl className="ownership-facts">
+            <div>
+              <dt>나의 저장소</dt>
+              <dd>GitHub 비공개 저장소에 자동 저장</dd>
             </div>
-            <div className="ownership-columns">
-              <article>
-                <GitBranch size={24} />
-                <h3>Your papers. Your space.</h3>
-                <p>
-                  논문 목록, 요약, 메모와 연결을 나의 비공개 GitHub 저장소에
-                  보관하세요. GitHub와 동기화해 다른 기기에서도 연구를 이어갈 수
-                  있어요.
-                </p>
-              </article>
-              <article>
-                <KeyRound size={24} />
-                <h3>Ready to read.</h3>
-                <p>
-                  GitHub으로 로그인하면 AI 정리와 채팅을 바로 사용할 수 있어요.
-                  별도의 API 키나 AI 구독 연결은 필요하지 않습니다.
-                </p>
-              </article>
-              <article>
-                <BookOpen size={24} />
-                <h3>Open by design.</h3>
-                <p>
-                  서비스 코드와 논문 읽기 Skill을 공개합니다. 웹에서도, 나의
-                  에이전트에서도 같은 형식으로 생각을 이어가세요.
-                </p>
-              </article>
+            <div>
+              <dt>바로 쓰는 AI</dt>
+              <dd>개인 API 키 없이 정리와 채팅</dd>
             </div>
-          </div>
+            <div>
+              <dt>자유로운 이동</dt>
+              <dd>JSON 가져오기와 내보내기</dd>
+            </div>
+          </dl>
         </section>
-        <section className="section-shell faq-section">
+        <section className="palace-faq">
           <div>
-            <p className="eyebrow">A FEW THINGS TO KNOW</p>
-            <h2>시작하기 전에.</h2>
+            <h2>궁금할 수 있는 것들.</h2>
+            <p>가볍게 시작해서, 오래 쓸 수 있도록.</p>
           </div>
           <div>
             {[
               [
                 "무료로 사용할 수 있나요?",
-                "Paper Palace는 무료 오픈소스 서비스입니다. AI 기능은 서비스에서 제공하며 별도의 API 키가 필요하지 않습니다. 안정적인 운영을 위해 짧은 시간에 많은 요청을 보내면 잠시 제한될 수 있습니다.",
+                "네. Paper Palace는 무료 오픈소스 서비스입니다. AI 기능도 별도의 API 키 없이 사용할 수 있어요. 안정적인 운영을 위해 짧은 시간에 많은 요청을 보내면 일시적으로 제한될 수 있습니다.",
               ],
               [
-                "ChatGPT나 Claude 구독 계정을 연결하나요?",
-                "아니요. GitHub 로그인만 하면 Paper Palace에서 제공하는 AI를 사용할 수 있어요. ChatGPT·Claude 구독이나 개인 API 키를 연결하지 않습니다.",
+                "어떤 논문을 추가할 수 있나요?",
+                "현재 arXiv 논문 링크를 지원합니다. 링크를 추가한 뒤 원본 PDF와 정리를 함께 읽을 수 있어요.",
               ],
               [
-                "원문과 요약은 어떻게 연결되나요?",
-                "arXiv HTML 또는 PDF에서 원문을 읽고, AI가 제시한 인용 문구가 추출된 본문에 있는지 검증합니다. 확인된 근거를 누르면 해당 본문으로 이동합니다. PDF는 페이지도 함께 확인할 수 있어요.",
+                "GitHub 계정이 필요한가요?",
+                "네. GitHub으로 로그인하고 비공개 저장소를 연결하면 연구 공간을 사용할 수 있습니다. 논문과 메모는 선택한 저장소에 자동으로 저장됩니다.",
               ],
               [
-                "로그인하지 않고도 쓸 수 있나요?",
-                "GitHub 로그인과 비공개 저장소 연결이 필요해요. 논문·요약·메모·그래프는 GitHub에서 불러오고 변경사항도 자동 저장해요. 다른 기기에서도 같은 저장소를 선택해 이어갈 수 있어요. JSON 가져오기와 내보내기도 지원해요.",
+                "AI 답변과 대화는 어떻게 다뤄지나요?",
+                "AI가 제시한 근거 문구를 원문에서 확인할 수 있습니다. 답변에는 오류가 있을 수 있으니 원문과 함께 읽어 주세요. 채팅은 논문을 닫으면 사라지고, 직접 메모에 저장한 답변만 남습니다.",
               ],
             ].map(([q, a]) => (
               <details key={q}>
                 <summary>
                   {q}
-                  <Plus size={18} />
+                  <Plus size={18} aria-hidden="true" />
                 </summary>
-                <p>{a}</p>
+                <div>
+                  <p>{a}</p>
+                </div>
               </details>
             ))}
           </div>
         </section>
-        <section className="closing section-shell">
-          <span className="closing-arch" />
-          <p className="eyebrow">YOUR NEXT PAPER HAS A PLACE.</p>
-          <h2>
-            한 편의 논문에서,
-            <br />
-            <em>나만의 Palace로.</em>
-          </h2>
-          <Link href="/app/" className="button primary">
-            서비스로 이동하기 <ArrowUpRight size={19} />
+        <section className="palace-invite">
+          <div>
+            <p>한 편의 논문에서 시작해 보세요.</p>
+            <h2>다음 생각이 기다리는 서재.</h2>
+          </div>
+          <Link className="button primary" href="/app/">
+            연구 공간으로 이동 <ArrowRight size={18} aria-hidden="true" />
           </Link>
-          <span className="closing-note">
-            <Check size={14} /> 지금, 첫 번째 논문을 놓아 보세요.
-          </span>
         </section>
       </main>
-      <footer className="site-footer">
-        <Brand compact />
-        <p>Made for curious minds.</p>
+      <footer className="palace-footer">
+        <Brand />
+        <p>Read. Connect. Remember.</p>
         <div>
-          <a
-            href="https://github.com/kmj200392/paper-palace"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub <ArrowUpRight size={13} />
-          </a>
           <Link href="/privacy/">개인정보 안내</Link>
           <MakerCredit />
-          <span>© 2026 Paper Palace</span>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

@@ -585,12 +585,12 @@ export default function Workspace() {
         </button>
         <span className="sidebar-label">
           {selected
-            ? "READING ROOM"
+            ? "읽는 중"
             : view === "discover"
-              ? "YOUR NEXT CONNECTION"
+              ? "다음 논문 찾기"
               : view === "graph"
-                ? "YOUR PERSONAL RESEARCH GRAPH"
-                : "YOUR PERSONAL LIBRARY"}
+                ? "논문과 연결"
+                : "나의 연구 공간"}
         </span>
         <nav aria-label="연구 공간 메뉴">
           <button
@@ -660,9 +660,9 @@ export default function Workspace() {
         </div>
         <div className="sidebar-bottom">
           <div className="sidebar-quote">
-            A little reading.
+            Read. Connect.
             <br />
-            <em>A new connection.</em>
+            Remember.
           </div>
           <button
             className="sidebar-item sidebar-settings"
@@ -729,7 +729,7 @@ export default function Workspace() {
       )}
       <div className={`workspace-main${selected ? " is-reading" : ""}`}>
         <main id="main" className={selected ? "reader-main" : "library-main"}>
-          {libraryReady && (!paper || remote.error) && (
+          {libraryReady && (remote.dirty || syncing || remote.error) && (
             <div
               className={`github-save-status ${remote.status === "error" ? "has-error" : ""}`}
             >
@@ -821,10 +821,12 @@ export default function Workspace() {
               ) : (
                 <Github size={36} />
               )}
-              <p className="eyebrow">YOUR PAPERS, YOUR GITHUB</p>
+              <p className="onboarding-caption">
+                Paper Palace에 오신 걸 환영해요
+              </p>
               <h1>
                 {!user
-                  ? "GitHub에 연구 공간을 열어 보세요."
+                  ? "나만의 연구 서재를 열어 보세요."
                   : !repo
                     ? "저장소를 연결해 주세요."
                     : remote.status === "error"
@@ -910,24 +912,27 @@ export default function Workspace() {
             <>
               <div className="library-heading">
                 <div>
-                  <p className="eyebrow">
-                    {view === "graph"
-                      ? "CONNECT THE IDEAS"
-                      : "A PLACE FOR EVERY PAPER"}
-                  </p>
-                  <h1>
-                    {view === "graph" ? "나의 지식 지도." : "나의 라이브러리."}
-                  </h1>
+                  <h1>{view === "graph" ? "지식 지도" : "라이브러리"}</h1>
                   <p>
                     {view === "graph"
                       ? "논문 사이의 관계에서, 다음 질문을 발견하세요."
                       : "읽은 논문, 떠오른 생각. 하나의 공간에 차곡차곡."}
                   </p>
                 </div>
-                <span className="library-counter">
-                  {String(library.papers.length).padStart(2, "0")}
-                  <small>PAPERS</small>
-                </span>
+                <div className="library-overview" aria-label="읽기 현황">
+                  <span>
+                    <strong>{library.papers.length}</strong>편의 논문
+                  </span>
+                  <span>
+                    <strong>
+                      {view === "graph"
+                        ? library.edges.length
+                        : library.papers.filter((p) => p.status === "read")
+                            .length}
+                    </strong>
+                    {view === "graph" ? "개의 연결" : "편 읽음"}
+                  </span>
+                </div>
               </div>
               <div className="library-tools">
                 <label className="search-field">
@@ -937,7 +942,9 @@ export default function Workspace() {
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="제목, 저자, 태그, 메모 검색"
+                    placeholder="제목, 저자, 태그, 메모 검색…"
+                    autoComplete="off"
+                    name="library-search"
                   />
                 </label>
                 {view === "library" ? (
@@ -998,7 +1005,7 @@ export default function Workspace() {
                         <BookOpen size={42} />
                         <span>EX LIBRIS</span>
                       </div>
-                      <p className="eyebrow">YOUR FIRST CHAPTER</p>
+
                       <h2>첫 번째 논문을 놓아 보세요.</h2>
                       <p>
                         arXiv 링크 하나로 시작해요.
@@ -1051,16 +1058,18 @@ export default function Workspace() {
                     </div>
                   ) : (
                     <div className="paper-grid">
-                      {papers.map((p, i) => (
+                      {papers.map((p) => (
                         <article className="paper-card" key={p.id}>
                           <button
                             className="paper-card-main"
                             onClick={() => setSelected(p.id)}
                           >
+                            <span className="paper-folio" aria-hidden="true">
+                              <BookOpen size={18} />
+                              <strong>{p.graphLabel || "Paper"}</strong>
+                              <small>{p.published.slice(0, 4)}</small>
+                            </span>
                             <div className="paper-card-top">
-                              <span className="paper-number">
-                                {String(i + 1).padStart(2, "0")}
-                              </span>
                               <span
                                 className={`status-pill status-${p.status}`}
                               >
